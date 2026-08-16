@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>喷房作业数据采集</title>
+  <title>现场喷房勘测</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: #f5f7fa;
-      padding: 20px;
+      padding: 16px;
       color: #333;
     }
     .container {
-      max-width: 600px;
+      max-width: 700px;
       margin: 0 auto;
       background: #fff;
       border-radius: 12px;
@@ -23,67 +23,73 @@
     h1 {
       font-size: 22px;
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 8px;
       color: #1a73e8;
     }
-    .form-group {
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .section {
+      margin-bottom: 28px;
+    }
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a73e8;
       margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e8f0fe;
+    }
+    .subsection {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin: 16px 0 10px;
+      padding-left: 8px;
+      border-left: 3px solid #1a73e8;
+    }
+    .form-group {
+      margin-bottom: 14px;
     }
     label {
       display: block;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
       color: #555;
     }
     label .required { color: #e53935; }
+    label .optional { color: #999; font-weight: normal; font-size: 12px; }
     input, select, textarea {
       width: 100%;
-      padding: 10px 12px;
+      padding: 9px 11px;
       border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 15px;
+      border-radius: 7px;
+      font-size: 14px;
       transition: border-color 0.2s;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: #1a73e8;
     }
-    textarea { resize: vertical; min-height: 60px; }
+    textarea { resize: vertical; min-height: 55px; }
     .row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
-    .section-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #1a73e8;
-      margin: 20px 0 12px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e8f0fe;
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
     }
-    .quality-options {
-      display: flex;
-      gap: 12px;
-    }
-    .quality-options label {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: normal;
-    }
-    .quality-options input[type="radio"] {
-      width: auto;
-    }
-    .quality-options label:has(input:checked) {
-      border-color: #1a73e8;
-      background: #e8f0fe;
+    .hint {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 3px;
     }
     button {
       width: 100%;
@@ -95,8 +101,7 @@
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      margin-top: 20px;
-      transition: background 0.2s;
+      margin-top: 10px;
     }
     button:hover { background: #1557b0; }
     button:disabled { background: #aaa; cursor: not-allowed; }
@@ -114,102 +119,268 @@
     }
     .toast.success { background: #43a047; }
     .toast.error { background: #e53935; }
+    .photo-note {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #f57f17;
+      margin-bottom: 14px;
+    }
   </style>
 </head>
 <body>
   <div class="toast" id="toast"></div>
   <div class="container">
-    <h1>喷房作业数据采集</h1>
-    <form id="sprayForm">
-      <div class="section-title">基本信息</div>
-      <div class="row">
+    <h1>现场喷房勘测</h1>
+    <div class="subtitle">On-site Spray Booth Survey</div>
+    
+    <form id="surveyForm">
+      <!-- 一、现场概述 -->
+      <div class="section">
+        <div class="section-title">一、现场概述</div>
+        
         <div class="form-group">
-          <label>喷房编号 <span class="required">*</span></label>
-          <select name="booth_number" required>
-            <option value="">请选择</option>
-            <option value="1号喷房">1号喷房</option>
-            <option value="2号喷房">2号喷房</option>
-            <option value="3号喷房">3号喷房</option>
-            <option value="4号喷房">4号喷房</option>
-            <option value="5号喷房">5号喷房</option>
-          </select>
+          <label>勘测名称 <span class="required">*</span></label>
+          <input type="text" name="survey_name" placeholder="如：某某4S店喷房勘测" required>
         </div>
+        
         <div class="form-group">
-          <label>操作员 <span class="required">*</span></label>
-          <input type="text" name="operator_name" placeholder="请输入姓名" required>
+          <label>现场地理位置 <span class="required">*</span></label>
+          <textarea name="location" placeholder="例：中国浙江省台州市温岭市泽国镇泽楚路926号2幢" required></textarea>
         </div>
-      </div>
-      <div class="row">
+        
+        <div class="row">
+          <div class="form-group">
+            <label>主要喷涂车型</label>
+            <input type="text" name="main_vehicle_types" placeholder="例：奔驰、奥迪、特斯拉">
+          </div>
+          <div class="form-group">
+            <label>喷房加热方式</label>
+            <input type="text" name="heating_method" placeholder="例：顶部热源或电加热">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>喷房最高气压</label>
+            <input type="text" name="max_air_pressure" placeholder="例：8bar">
+          </div>
+          <div class="form-group">
+            <label>喷房最高温度</label>
+            <input type="text" name="max_temperature" placeholder="例：60℃">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>地板/楼板厚度</label>
+            <input type="text" name="floor_thickness" placeholder="例：100mm">
+          </div>
+          <div class="form-group">
+            <label>喷房所在楼层</label>
+            <input type="text" name="booth_level" placeholder="例：一楼 / 三楼">
+          </div>
+        </div>
+        
         <div class="form-group">
-          <label>产品名称</label>
-          <input type="text" name="product_name" placeholder="如：汽车保险杠">
+          <label>电梯内部尺寸 <span class="optional">（选填）</span></label>
+          <input type="text" name="elevator_dimensions" placeholder="例：5450×2255mm">
         </div>
+        
         <div class="form-group">
-          <label>颜色编码</label>
-          <input type="text" name="color_code" placeholder="如：R-9016">
+          <label>喷房地下有无钢筋、水管和电线</label>
+          <input type="text" name="underground_utilities" placeholder="例：无 / 有钢筋">
         </div>
-      </div>
-      <div class="form-group">
-        <label>涂料类型</label>
-        <select name="coating_type">
-          <option value="">请选择</option>
-          <option value="底漆">底漆</option>
-          <option value="色漆">色漆</option>
-          <option value="清漆">清漆</option>
-          <option value="粉末涂料">粉末涂料</option>
-        </select>
+
+        <div class="photo-note">
+          提示：喷房内部及四周照片、地下管线图纸请单独保存，后续可通过备注说明或邮件补充。
+        </div>
+
+        <!-- 控制柜安装位置 -->
+        <div class="subsection">控制柜安装位置（控制柜尺寸：2000×440×265mm）</div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>安装电柜处宽度</label>
+            <input type="text" name="cabinet_install_width" placeholder="例：500mm">
+            <div class="hint">墙面到喷房门铰链的距离</div>
+          </div>
+          <div class="form-group">
+            <label>喷房小门位置</label>
+            <input type="text" name="aux_door_position" placeholder="例：左后（站在喷房外正对大门）">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>门与前墙面距离</label>
+            <input type="text" name="door_to_front_wall" placeholder="例：xxx mm">
+          </div>
+          <div class="form-group">
+            <label>门宽</label>
+            <input type="text" name="door_width" placeholder="例：760mm">
+          </div>
+        </div>
+
+        <!-- 墙面烤灯位置 -->
+        <div class="subsection">墙面烤灯位置 <span class="optional">（选填）</span></div>
+        
+        <div class="row-3">
+          <div class="form-group">
+            <label>烤灯下沿至格栅面高度</label>
+            <input type="text" name="lamp_lower_height" placeholder="例：510mm">
+          </div>
+          <div class="form-group">
+            <label>烤灯上沿至格栅面高度</label>
+            <input type="text" name="lamp_upper_height" placeholder="例：1070mm">
+          </div>
+          <div class="form-group">
+            <label>烤灯宽度</label>
+            <input type="text" name="lamp_width" placeholder="例：145mm">
+          </div>
+        </div>
+        
+        <div class="row-3">
+          <div class="form-group">
+            <label>前墙面与烤灯距离</label>
+            <input type="text" name="front_wall_to_lamp" placeholder="例：1500mm">
+          </div>
+          <div class="form-group">
+            <label>烤灯间距1</label>
+            <input type="text" name="lamp_to_lamp_1" placeholder="例：200mm">
+          </div>
+          <div class="form-group">
+            <label>烤灯间距2</label>
+            <input type="text" name="lamp_to_lamp_2" placeholder="例：200mm">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="form-group">
+            <label>气源位置</label>
+            <input type="text" name="air_supply_location" placeholder="描述气源接口位置">
+          </div>
+          <div class="form-group">
+            <label>220V电源位置</label>
+            <input type="text" name="power_supply_location" placeholder="描述电源插座位置">
+          </div>
+        </div>
       </div>
 
-      <div class="section-title">喷涂参数</div>
-      <div class="row">
-        <div class="form-group">
-          <label>电压 (kV)</label>
-          <input type="text" name="voltage" placeholder="如：60">
+      <!-- 二、喷房内部尺寸 -->
+      <div class="section">
+        <div class="section-title">二、喷房内部尺寸</div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>内部高度</label>
+            <input type="text" name="interior_height" placeholder="例：3000mm">
+          </div>
+          <div class="form-group">
+            <label>灯具底部至格栅高度</label>
+            <input type="text" name="light_to_grate_height" placeholder="例：xxx mm">
+          </div>
         </div>
-        <div class="form-group">
-          <label>电流 (μA)</label>
-          <input type="text" name="current" placeholder="如：35">
+        
+        <div class="row">
+          <div class="form-group">
+            <label>灯具宽度</label>
+            <input type="text" name="light_width" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>内部宽度</label>
+            <input type="text" name="interior_width" placeholder="例：3900mm">
+          </div>
         </div>
-      </div>
-      <div class="row">
+        
         <div class="form-group">
-          <label>流量 (cc/min)</label>
-          <input type="text" name="flow_rate" placeholder="如：150">
+          <label>内部长度</label>
+          <input type="text" name="interior_length" placeholder="例：6900mm">
         </div>
-        <div class="form-group">
-          <label>雾化压力 (bar)</label>
-          <input type="text" name="spray_pressure" placeholder="如：2.5">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>膜厚 (μm)</label>
-        <input type="text" name="thickness" placeholder="如：60-80">
       </div>
 
-      <div class="section-title">质量检查</div>
-      <div class="form-group">
-        <label>质量结果</label>
-        <div class="quality-options">
-          <label><input type="radio" name="quality_result" value="合格" checked> 合格</label>
-          <label><input type="radio" name="quality_result" value="不合格"> 不合格</label>
-          <label><input type="radio" name="quality_result" value="返工"> 返工</label>
+      <!-- 三、地坑尺寸 -->
+      <div class="section">
+        <div class="section-title">三、地坑尺寸</div>
+        <div class="hint" style="margin-bottom:12px;">测量方法：测量地坑底部到格栅顶部的距离，共6个测量点</div>
+        
+        <div class="row-3">
+          <div class="form-group">
+            <label>深度测量点1</label>
+            <input type="text" name="pit_depth_1" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>深度测量点2</label>
+            <input type="text" name="pit_depth_2" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>深度测量点3</label>
+            <input type="text" name="pit_depth_3" placeholder="例：300mm">
+          </div>
+        </div>
+        <div class="row-3">
+          <div class="form-group">
+            <label>深度测量点4</label>
+            <input type="text" name="pit_depth_4" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>深度测量点5</label>
+            <input type="text" name="pit_depth_5" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>深度测量点6</label>
+            <input type="text" name="pit_depth_6" placeholder="例：300mm">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>地坑宽度</label>
+            <input type="text" name="pit_width" placeholder="例：550mm">
+          </div>
+          <div class="form-group">
+            <label>墙边筋宽度</label>
+            <input type="text" name="edge_bar_width" placeholder="例：20mm">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>水泥墩长度 <span class="optional">（选填）</span></label>
+            <input type="text" name="concrete_pier_length" placeholder="例：400mm">
+          </div>
+          <div class="form-group">
+            <label>水泥墩高度 <span class="optional">（选填）</span></label>
+            <input type="text" name="concrete_pier_height" placeholder="例：250mm">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>平面斜坡长度 <span class="optional">（选填）</span></label>
+            <input type="text" name="ramp_length" placeholder="例：1000mm">
+          </div>
+          <div class="form-group">
+            <label>斜坡高度 <span class="optional">（选填）</span></label>
+            <input type="text" name="ramp_height" placeholder="例：100mm">
+          </div>
         </div>
       </div>
-      <div class="form-group">
-        <label>缺陷描述</label>
-        <textarea name="defect_description" placeholder="如：流挂、橘皮、针孔等（不合格时填写）"></textarea>
-      </div>
+
+      <!-- 备注 -->
       <div class="form-group">
         <label>备注</label>
-        <textarea name="remarks" placeholder="其他需要说明的事项"></textarea>
+        <textarea name="remarks" placeholder="其他需要说明的事项、照片说明等"></textarea>
       </div>
 
-      <button type="submit" id="submitBtn">提交记录</button>
+      <button type="submit" id="submitBtn">提交勘测记录</button>
     </form>
   </div>
 
   <script>
-    const form = document.getElementById('sprayForm');
+    const form = document.getElementById('surveyForm');
     const toast = document.getElementById('toast');
     const submitBtn = document.getElementById('submitBtn');
 
@@ -239,6 +410,7 @@
         if (res.ok) {
           showToast('提交成功！', 'success');
           form.reset();
+          window.scrollTo(0, 0);
         } else {
           showToast(result.error || '提交失败', 'error');
         }
@@ -246,7 +418,7 @@
         showToast('网络错误，请重试', 'error');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = '提交记录';
+        submitBtn.textContent = '提交勘测记录';
       }
     });
   </script>

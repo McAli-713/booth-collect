@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const ExcelJS = require('exceljs');
 const { Resend } = require('resend');
-const { initDB, insertRecord, getRecords, getAllRecords, deleteRecord } = require('./db');
+const { initDB, insertSurvey, getSurveys, getSurveyById, getAllSurveys, deleteSurvey } = require('./db');
 
 require('dotenv').config();
 
@@ -11,13 +11,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 初始化数据库
 initDB();
 
-// 简单的 Basic Auth 中间件（管理后台用）
 function authMiddleware(req, res, next) {
   const adminUser = process.env.ADMIN_USERNAME || 'admin';
   const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
@@ -39,27 +37,23 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// 发送邮件通知
 async function sendNotification(record) {
-  if (!process.env.RESEND_API_KEY || !process.env.NOTIFICATION_EMAIL) {
-    return;
-  }
+  if (!process.env.RESEND_API_KEY || !process.env.NOTIFICATION_EMAIL) return;
   
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
-      from: '喷房数据系统 <onboarding@resend.dev>',
+      from: '喷房勘测系统 <onboarding@resend.dev>',
       to: process.env.NOTIFICATION_EMAIL,
-      subject: `新喷房记录 - ${record.booth_number} - ${record.operator_name}`,
+      subject: `新喷房勘测记录 - ${record.survey_name || '未命名'}`,
       html: `
-        <h2>新的喷房作业记录</h2>
+        <h2>新的喷房勘测记录</h2>
         <table style="border-collapse: collapse; width: 100%;">
-          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>喷房编号</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.booth_number}</td></tr>
-          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>操作员</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.operator_name}</td></tr>
-          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>产品名称</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.product_name || '-'}</td></tr>
-          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>涂料类型</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.coating_type || '-'}</td></tr>
-          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>颜色编码</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.color_code || '-'}</td></tr>
-          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>质量结果</strong></td><td style="border: 1px solid #ddd; padding: 8px; color: ${record.quality_result === '合格' ? 'green' : 'red'};">${record.quality_result || '-'}</td></tr>
+          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>勘测名称</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.survey_name || '-'}</td></tr>
+          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>现场地址</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.location || '-'}</td></tr>
+          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>主要车型</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.main_vehicle_types || '-'}</td></tr>
+          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>喷房楼层</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.booth_level || '-'}</td></tr>
+          <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>内部尺寸</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${record.interior_length || '-'} × ${record.interior_width || '-'} × ${record.interior_height || '-'}</td></tr>
           <tr><td style="border: 1px solid #ddd; padding: 8px;"><strong>提交时间</strong></td><td style="border: 1px solid #ddd; padding: 8px;">${new Date(record.created_at).toLocaleString('zh-CN')}</td></tr>
         </table>
       `
@@ -71,19 +65,13 @@ async function sendNotification(record) {
 
 // ========== 公开接口 ==========
 
-// 提交喷房记录
 app.post('/api/submit', async (req, res) => {
   try {
-    const { booth_number, operator_name } = req.body;
-    if (!booth_number || !operator_name) {
-      return res.status(400).json({ error: '喷房编号和操作员为必填项' });
+    if (!req.body.survey_name && !req.body.location) {
+      return res.status(400).json({ error: '勘测名称或现场地址至少填一项' });
     }
-    
-    const record = await insertRecord(req.body);
-    
-    // 异步发送邮件，不阻塞响应
+    const record = await insertSurvey(req.body);
     sendNotification(record);
-    
     res.json({ success: true, message: '提交成功', id: record.id });
   } catch (err) {
     console.error('提交失败:', err);
@@ -91,29 +79,39 @@ app.post('/api/submit', async (req, res) => {
   }
 });
 
-// 健康检查
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// ========== 管理后台接口（需要认证） ==========
+// ========== 管理后台接口 ==========
 
-// 获取记录列表
 app.get('/api/records', authMiddleware, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
-    const data = await getRecords(page, limit);
+    const data = await getSurveys(page, limit);
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 删除记录
+app.get('/api/records/:id', authMiddleware, async (req, res) => {
+  try {
+    const record = await getSurveyById(req.params.id);
+    if (record) {
+      res.json(record);
+    } else {
+      res.status(404).json({ error: '记录不存在' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/records/:id', authMiddleware, async (req, res) => {
   try {
-    const deleted = await deleteRecord(req.params.id);
+    const deleted = await deleteSurvey(req.params.id);
     if (deleted) {
       res.json({ success: true });
     } else {
@@ -124,33 +122,61 @@ app.delete('/api/records/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// 导出 Excel
+// Excel 导出列定义
+const EXPORT_COLUMNS = [
+  { header: 'ID', key: 'id', width: 8 },
+  { header: '勘测名称', key: 'survey_name', width: 20 },
+  { header: '现场地址', key: 'location', width: 35 },
+  { header: '主要喷涂车型', key: 'main_vehicle_types', width: 20 },
+  { header: '加热方式', key: 'heating_method', width: 15 },
+  { header: '最高气压', key: 'max_air_pressure', width: 12 },
+  { header: '最高温度', key: 'max_temperature', width: 12 },
+  { header: '楼板厚度', key: 'floor_thickness', width: 12 },
+  { header: '喷房楼层', key: 'booth_level', width: 12 },
+  { header: '电梯尺寸', key: 'elevator_dimensions', width: 15 },
+  { header: '地下管线情况', key: 'underground_utilities', width: 20 },
+  { header: '电柜安装宽度', key: 'cabinet_install_width', width: 14 },
+  { header: '小门位置', key: 'aux_door_position', width: 15 },
+  { header: '门到前墙距离', key: 'door_to_front_wall', width: 14 },
+  { header: '门宽', key: 'door_width', width: 10 },
+  { header: '烤灯下沿高度', key: 'lamp_lower_height', width: 14 },
+  { header: '烤灯上沿高度', key: 'lamp_upper_height', width: 14 },
+  { header: '烤灯宽度', key: 'lamp_width', width: 12 },
+  { header: '前墙到烤灯距离', key: 'front_wall_to_lamp', width: 15 },
+  { header: '烤灯间距1', key: 'lamp_to_lamp_1', width: 12 },
+  { header: '烤灯间距2', key: 'lamp_to_lamp_2', width: 12 },
+  { header: '气源位置', key: 'air_supply_location', width: 20 },
+  { header: '220V电源位置', key: 'power_supply_location', width: 20 },
+  { header: '内部高度', key: 'interior_height', width: 12 },
+  { header: '灯具到格栅高度', key: 'light_to_grate_height', width: 15 },
+  { header: '灯具宽度', key: 'light_width', width: 12 },
+  { header: '内部宽度', key: 'interior_width', width: 12 },
+  { header: '内部长度', key: 'interior_length', width: 12 },
+  { header: '地坑深度1', key: 'pit_depth_1', width: 12 },
+  { header: '地坑深度2', key: 'pit_depth_2', width: 12 },
+  { header: '地坑深度3', key: 'pit_depth_3', width: 12 },
+  { header: '地坑深度4', key: 'pit_depth_4', width: 12 },
+  { header: '地坑深度5', key: 'pit_depth_5', width: 12 },
+  { header: '地坑深度6', key: 'pit_depth_6', width: 12 },
+  { header: '地坑宽度', key: 'pit_width', width: 12 },
+  { header: '墙边筋宽度', key: 'edge_bar_width', width: 12 },
+  { header: '水泥墩长度', key: 'concrete_pier_length', width: 12 },
+  { header: '水泥墩高度', key: 'concrete_pier_height', width: 12 },
+  { header: '斜坡长度', key: 'ramp_length', width: 12 },
+  { header: '斜坡高度', key: 'ramp_height', width: 12 },
+  { header: '备注', key: 'remarks', width: 25 },
+  { header: '提交时间', key: 'created_at', width: 20 }
+];
+
 app.get('/api/export', authMiddleware, async (req, res) => {
   try {
-    const records = await getAllRecords();
+    const records = await getAllSurveys();
     
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('喷房记录');
+    const worksheet = workbook.addWorksheet('喷房勘测记录');
     
-    worksheet.columns = [
-      { header: 'ID', key: 'id', width: 8 },
-      { header: '喷房编号', key: 'booth_number', width: 12 },
-      { header: '操作员', key: 'operator_name', width: 12 },
-      { header: '产品名称', key: 'product_name', width: 20 },
-      { header: '涂料类型', key: 'coating_type', width: 15 },
-      { header: '颜色编码', key: 'color_code', width: 12 },
-      { header: '电压(kV)', key: 'voltage', width: 10 },
-      { header: '电流(μA)', key: 'current', width: 10 },
-      { header: '流量(cc/min)', key: 'flow_rate', width: 12 },
-      { header: '雾化压力(bar)', key: 'spray_pressure', width: 14 },
-      { header: '膜厚(μm)', key: 'thickness', width: 12 },
-      { header: '质量结果', key: 'quality_result', width: 10 },
-      { header: '缺陷描述', key: 'defect_description', width: 25 },
-      { header: '备注', key: 'remarks', width: 25 },
-      { header: '提交时间', key: 'created_at', width: 20 }
-    ];
+    worksheet.columns = EXPORT_COLUMNS;
     
-    // 表头样式
     worksheet.getRow(1).font = { bold: true };
     worksheet.getRow(1).fill = {
       type: 'pattern',
@@ -166,7 +192,7 @@ app.get('/api/export', authMiddleware, async (req, res) => {
     });
     
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=spray_records_${Date.now()}.xlsx`);
+    res.setHeader('Content-Disposition', `attachment; filename=booth_surveys_${Date.now()}.xlsx`);
     
     await workbook.xlsx.write(res);
     res.end();
@@ -176,13 +202,12 @@ app.get('/api/export', authMiddleware, async (req, res) => {
   }
 });
 
-// 管理后台页面
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`喷房数据采集系统运行在端口 ${PORT}`);
+  console.log(`喷房勘测系统运行在端口 ${PORT}`);
   console.log(`表单页面: http://localhost:${PORT}/`);
   console.log(`管理后台: http://localhost:${PORT}/admin`);
 });

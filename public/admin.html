@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>喷房数据管理后台</title>
+  <title>喷房勘测管理后台</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -14,39 +14,40 @@
     .header {
       background: #1a73e8;
       color: #fff;
-      padding: 16px 24px;
+      padding: 14px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .header h1 { font-size: 20px; }
-    .header .actions { display: flex; gap: 12px; }
+    .header h1 { font-size: 18px; }
+    .header .actions { display: flex; gap: 10px; }
     .btn {
-      padding: 8px 16px;
+      padding: 7px 14px;
       border: none;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
       font-weight: 500;
     }
     .btn-primary { background: #fff; color: #1a73e8; }
     .btn-danger { background: #e53935; color: #fff; }
     .btn-secondary { background: #f0f0f0; color: #333; }
-    .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .btn-info { background: #1a73e8; color: #fff; }
+    .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
     }
     .stat-card {
       background: #fff;
-      padding: 20px;
+      padding: 18px;
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    .stat-card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
-    .stat-card .value { font-size: 28px; font-weight: 700; color: #1a73e8; }
+    .stat-card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
+    .stat-card .value { font-size: 26px; font-weight: 700; color: #1a73e8; }
     .table-container {
       background: #fff;
       border-radius: 10px;
@@ -56,80 +57,124 @@
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th {
       background: #f8f9fa;
-      padding: 12px 10px;
+      padding: 11px 10px;
       text-align: left;
       font-weight: 600;
       color: #555;
       border-bottom: 2px solid #e8e8e8;
-      white-space: nowrap;
     }
-    td {
-      padding: 10px;
-      border-bottom: 1px solid #f0f0f0;
-    }
+    td { padding: 10px; border-bottom: 1px solid #f0f0f0; }
     tr:hover { background: #f8f9fa; }
-    .badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .badge-pass { background: #e8f5e9; color: #2e7d32; }
-    .badge-fail { background: #ffebee; color: #c62828; }
-    .badge-rework { background: #fff3e0; color: #e65100; }
     .pagination {
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 8px;
-      padding: 16px;
+      padding: 14px;
     }
     .pagination button {
-      padding: 6px 12px;
+      padding: 5px 11px;
       border: 1px solid #ddd;
       background: #fff;
       border-radius: 6px;
       cursor: pointer;
     }
     .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .pagination .active { background: #1a73e8; color: #fff; border-color: #1a73e8; }
-    .pagination span { font-size: 14px; color: #666; }
+    .pagination span { font-size: 13px; color: #666; }
     .empty { text-align: center; padding: 40px; color: #999; }
     .login-box {
-      max-width: 400px;
-      margin: 100px auto;
+      max-width: 380px;
+      margin: 80px auto;
       background: #fff;
-      padding: 32px;
+      padding: 30px;
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
-    .login-box h2 { text-align: center; margin-bottom: 24px; color: #1a73e8; }
+    .login-box h2 { text-align: center; margin-bottom: 22px; color: #1a73e8; }
     .login-box input {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 16px;
+      padding: 11px;
+      margin-bottom: 14px;
       border: 1px solid #ddd;
       border-radius: 8px;
-      font-size: 15px;
+      font-size: 14px;
     }
     .login-box button {
       width: 100%;
-      padding: 12px;
+      padding: 11px;
       background: #1a73e8;
       color: #fff;
       border: none;
       border-radius: 8px;
-      font-size: 16px;
+      font-size: 15px;
       cursor: pointer;
     }
     .error-msg { color: #e53935; font-size: 13px; margin-bottom: 12px; text-align: center; }
+    
+    /* 详情弹窗 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 30px;
+      overflow-y: auto;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 700px;
+      padding: 24px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h2 {
+      font-size: 18px;
+      color: #1a73e8;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8f0fe;
+    }
+    .detail-section {
+      margin-bottom: 18px;
+    }
+    .detail-section h3 {
+      font-size: 14px;
+      color: #1a73e8;
+      margin-bottom: 10px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 16px;
+    }
+    .detail-item {
+      font-size: 13px;
+      padding: 5px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .detail-item .key { color: #888; }
+    .detail-item .val { color: #333; font-weight: 500; }
+    .modal-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #999;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
   <div id="loginView" style="display:none;">
     <div class="login-box">
-      <h2>管理后台登录</h2>
+      <h2>喷房勘测管理后台</h2>
       <div class="error-msg" id="loginError"></div>
       <input type="text" id="loginUser" placeholder="用户名">
       <input type="password" id="loginPass" placeholder="密码">
@@ -139,7 +184,7 @@
 
   <div id="mainView" style="display:none;">
     <div class="header">
-      <h1>喷房数据管理后台</h1>
+      <h1>喷房勘测管理后台</h1>
       <div class="actions">
         <button class="btn btn-primary" onclick="exportExcel()">导出 Excel</button>
         <button class="btn btn-secondary" onclick="logout()">退出</button>
@@ -148,20 +193,16 @@
     <div class="container">
       <div class="stats">
         <div class="stat-card">
-          <div class="label">总记录数</div>
+          <div class="label">总勘测记录</div>
           <div class="value" id="statTotal">0</div>
         </div>
         <div class="stat-card">
-          <div class="label">合格数</div>
-          <div class="value" id="statPass" style="color:#2e7d32;">0</div>
+          <div class="label">本月新增</div>
+          <div class="value" id="statMonth" style="color:#2e7d32;">0</div>
         </div>
         <div class="stat-card">
-          <div class="label">不合格数</div>
-          <div class="value" id="statFail" style="color:#c62828;">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">返工数</div>
-          <div class="value" id="statRework" style="color:#e65100;">0</div>
+          <div class="label">最近提交</div>
+          <div class="value" id="statRecent" style="font-size:16px;">-</div>
         </div>
       </div>
       <div class="table-container">
@@ -169,17 +210,10 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>喷房</th>
-              <th>操作员</th>
-              <th>产品</th>
-              <th>涂料</th>
-              <th>颜色</th>
-              <th>电压</th>
-              <th>电流</th>
-              <th>流量</th>
-              <th>压力</th>
-              <th>膜厚</th>
-              <th>质量</th>
+              <th>勘测名称</th>
+              <th>现场地址</th>
+              <th>主要车型</th>
+              <th>楼层</th>
               <th>提交时间</th>
               <th>操作</th>
             </tr>
@@ -191,20 +225,53 @@
     </div>
   </div>
 
+  <!-- 详情弹窗 -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h2>勘测详情</h2>
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
   <script>
     let currentPage = 1;
     const pageSize = 20;
     let authHeader = null;
+    let allRecords = [];
 
-    // 检查是否已登录
+    const FIELD_LABELS = {
+      survey_name: '勘测名称', location: '现场地址', main_vehicle_types: '主要喷涂车型',
+      heating_method: '加热方式', max_air_pressure: '最高气压', max_temperature: '最高温度',
+      floor_thickness: '楼板厚度', booth_level: '喷房楼层', elevator_dimensions: '电梯尺寸',
+      underground_utilities: '地下管线情况', cabinet_install_width: '电柜安装宽度',
+      aux_door_position: '小门位置', door_to_front_wall: '门到前墙距离', door_width: '门宽',
+      lamp_lower_height: '烤灯下沿高度', lamp_upper_height: '烤灯上沿高度', lamp_width: '烤灯宽度',
+      front_wall_to_lamp: '前墙到烤灯距离', lamp_to_lamp_1: '烤灯间距1', lamp_to_lamp_2: '烤灯间距2',
+      air_supply_location: '气源位置', power_supply_location: '220V电源位置',
+      interior_height: '内部高度', light_to_grate_height: '灯具到格栅高度', light_width: '灯具宽度',
+      interior_width: '内部宽度', interior_length: '内部长度',
+      pit_depth_1: '地坑深度1', pit_depth_2: '地坑深度2', pit_depth_3: '地坑深度3',
+      pit_depth_4: '地坑深度4', pit_depth_5: '地坑深度5', pit_depth_6: '地坑深度6',
+      pit_width: '地坑宽度', edge_bar_width: '墙边筋宽度',
+      concrete_pier_length: '水泥墩长度', concrete_pier_height: '水泥墩高度',
+      ramp_length: '斜坡长度', ramp_height: '斜坡高度', remarks: '备注'
+    };
+
+    const SECTIONS = [
+      { title: '一、现场概述', fields: ['survey_name','location','main_vehicle_types','heating_method','max_air_pressure','max_temperature','floor_thickness','booth_level','elevator_dimensions','underground_utilities'] },
+      { title: '控制柜与小门', fields: ['cabinet_install_width','aux_door_position','door_to_front_wall','door_width'] },
+      { title: '墙面烤灯', fields: ['lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp','lamp_to_lamp_1','lamp_to_lamp_2'] },
+      { title: '气源与电源', fields: ['air_supply_location','power_supply_location'] },
+      { title: '二、喷房内部尺寸', fields: ['interior_height','light_to_grate_height','light_width','interior_width','interior_length'] },
+      { title: '三、地坑尺寸', fields: ['pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6','pit_width','edge_bar_width','concrete_pier_length','concrete_pier_height','ramp_length','ramp_height'] },
+      { title: '其他', fields: ['remarks'] }
+    ];
+
     function checkAuth() {
       const saved = localStorage.getItem('spray_admin_auth');
-      if (saved) {
-        authHeader = saved;
-        showMain();
-      } else {
-        showLogin();
-      }
+      if (saved) { authHeader = saved; showMain(); }
+      else { showLogin(); }
     }
 
     function showLogin() {
@@ -222,7 +289,6 @@
       const user = document.getElementById('loginUser').value;
       const pass = document.getElementById('loginPass').value;
       authHeader = 'Basic ' + btoa(user + ':' + pass);
-      
       try {
         const res = await fetch('/api/records?page=1&limit=1', {
           headers: { 'Authorization': authHeader }
@@ -251,10 +317,10 @@
         });
         if (res.status === 401) { logout(); return; }
         const data = await res.json();
-        
+        allRecords = data.records;
         renderTable(data.records);
         renderPagination(data.total);
-        renderStats(data.records);
+        renderStats(data.records, data.total);
       } catch (err) {
         console.error(err);
       }
@@ -263,43 +329,36 @@
     function renderTable(records) {
       const tbody = document.getElementById('tableBody');
       if (records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" class="empty">暂无数据</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
         return;
       }
-      tbody.innerHTML = records.map(r => {
-        let badgeClass = 'badge-pass';
-        if (r.quality_result === '不合格') badgeClass = 'badge-fail';
-        else if (r.quality_result === '返工') badgeClass = 'badge-rework';
-        return `
-          <tr>
-            <td>${r.id}</td>
-            <td>${r.booth_number}</td>
-            <td>${r.operator_name}</td>
-            <td>${r.product_name || '-'}</td>
-            <td>${r.coating_type || '-'}</td>
-            <td>${r.color_code || '-'}</td>
-            <td>${r.voltage || '-'}</td>
-            <td>${r.current || '-'}</td>
-            <td>${r.flow_rate || '-'}</td>
-            <td>${r.spray_pressure || '-'}</td>
-            <td>${r.thickness || '-'}</td>
-            <td><span class="badge ${badgeClass}">${r.quality_result || '-'}</span></td>
-            <td>${new Date(r.created_at).toLocaleString('zh-CN')}</td>
-            <td><button class="btn btn-danger" style="padding:4px 10px;font-size:12px;" onclick="deleteRecord(${r.id})">删除</button></td>
-          </tr>
-        `;
-      }).join('');
+      tbody.innerHTML = records.map(r => `
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.survey_name || '-'}</td>
+          <td title="${r.location || ''}">${(r.location || '').slice(0, 30)}${(r.location || '').length > 30 ? '...' : ''}</td>
+          <td>${r.main_vehicle_types || '-'}</td>
+          <td>${r.booth_level || '-'}</td>
+          <td>${new Date(r.created_at).toLocaleString('zh-CN')}</td>
+          <td>
+            <button class="btn btn-info" style="padding:4px 9px;font-size:12px;" onclick="viewDetail(${r.id})">详情</button>
+            <button class="btn btn-danger" style="padding:4px 9px;font-size:12px;" onclick="deleteRecord(${r.id})">删除</button>
+          </td>
+        </tr>
+      `).join('');
     }
 
-    function renderStats(records) {
-      // 这里只统计当前页，实际应该统计全部，简化处理
-      const pass = records.filter(r => r.quality_result === '合格').length;
-      const fail = records.filter(r => r.quality_result === '不合格').length;
-      const rework = records.filter(r => r.quality_result === '返工').length;
-      document.getElementById('statTotal').textContent = records.length + ' (当前页)';
-      document.getElementById('statPass').textContent = pass;
-      document.getElementById('statFail').textContent = fail;
-      document.getElementById('statRework').textContent = rework;
+    function renderStats(records, total) {
+      document.getElementById('statTotal').textContent = total;
+      const now = new Date();
+      const thisMonth = records.filter(r => {
+        const d = new Date(r.created_at);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }).length;
+      document.getElementById('statMonth').textContent = thisMonth + ' (当前页)';
+      document.getElementById('statRecent').textContent = records.length > 0 
+        ? new Date(records[0].created_at).toLocaleDateString('zh-CN') 
+        : '-';
     }
 
     function renderPagination(total) {
@@ -317,23 +376,47 @@
       loadRecords();
     }
 
+    async function viewDetail(id) {
+      try {
+        const res = await fetch(`/api/records/${id}`, {
+          headers: { 'Authorization': authHeader }
+        });
+        const data = await res.json();
+        let html = '';
+        SECTIONS.forEach(section => {
+          html += `<div class="detail-section"><h3>${section.title}</h3><div class="detail-grid">`;
+          section.fields.forEach(f => {
+            const val = data[f];
+            html += `<div class="detail-item"><span class="key">${FIELD_LABELS[f] || f}：</span><span class="val">${val || '-'}</span></div>`;
+          });
+          html += '</div></div>';
+        });
+        html += `<div class="detail-item" style="margin-top:10px;"><span class="key">提交时间：</span><span class="val">${new Date(data.created_at).toLocaleString('zh-CN')}</span></div>`;
+        document.getElementById('detailContent').innerHTML = html;
+        document.getElementById('detailModal').classList.add('active');
+      } catch (err) {
+        alert('获取详情失败');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('detailModal').classList.remove('active');
+    }
+
     async function deleteRecord(id) {
-      if (!confirm('确定删除这条记录吗？')) return;
+      if (!confirm('确定删除这条勘测记录吗？')) return;
       try {
         const res = await fetch(`/api/records/${id}`, {
           method: 'DELETE',
           headers: { 'Authorization': authHeader }
         });
-        if (res.ok) {
-          loadRecords();
-        }
+        if (res.ok) { loadRecords(); }
       } catch (err) {
         alert('删除失败');
       }
     }
 
     function exportExcel() {
-      // 带认证的下载
       fetch('/api/export', { headers: { 'Authorization': authHeader } })
         .then(res => {
           if (res.status === 401) { logout(); return; }
@@ -343,11 +426,16 @@
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `喷房记录_${new Date().toISOString().slice(0,10)}.xlsx`;
+          a.download = `喷房勘测记录_${new Date().toISOString().slice(0,10)}.xlsx`;
           a.click();
           window.URL.revokeObjectURL(url);
         });
     }
+
+    // 点击弹窗外部关闭
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
 
     checkAuth();
   </script>
