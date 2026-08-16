@@ -1,21 +1,36 @@
 const { Pool } = require('pg');
+const crypto = require('crypto');
 require('dotenv').config();
 
-// Neon 数据库连接（域名本身支持 IPv4，无需强制解析）
+// Neon 数据库连接
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  },
+  ssl: { rejectUnauthorized: false },
   connectionTimeoutMillis: 15000
 });
 
-// 初始化数据库表 - 现场喷房勘测
+// 初始化数据库表
 async function initDB() {
   try {
+    // 邀请码表
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS invite_codes (
+        id SERIAL PRIMARY KEY,
+        code VARCHAR(20) UNIQUE NOT NULL,
+        customer_name VARCHAR(200) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        usage_count INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 勘测记录表（增加 invite_code 字段）
     await pool.query(`
       CREATE TABLE IF NOT EXISTS booth_surveys (
         id SERIAL PRIMARY KEY,
+        invite_code VARCHAR(20),
+        customer_name VARCHAR(200),
         survey_name VARCHAR(200),
         location TEXT,
         main_vehicle_types VARCHAR(200),
@@ -59,6 +74,13 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // 兼容旧表：如果没有 invite_code 列则添加
+    try {
+      await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS invite_code VARCHAR(20)');
+      await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS customer_name VARCHAR(200)');
+    } catch (e) { /* 已存在则忽略 */ }
+
     console.log('数据库表初始化完成');
   } catch (err) {
     console.error('数据库初始化失败:', err.message);
@@ -66,6 +88,7 @@ async function initDB() {
 }
 
 const FIELDS = [
+  'invite_code', 'customer_name',
   'survey_name', 'location', 'main_vehicle_types', 'heating_method',
   'max_air_pressure', 'max_temperature', 'floor_thickness', 'booth_level',
   'elevator_dimensions', 'underground_utilities',
@@ -82,6 +105,7 @@ const FIELDS = [
   'remarks'
 ];
 
+// ========== 勘测记录相关 ==========
 async function insertSurvey(data) {
   const placeholders = FIELDS.map((_, i) => `$${i + 1}`).join(', ');
   const values = FIELDS.map(f => data[f] || null);
@@ -89,13 +113,21 @@ async function insertSurvey(data) {
     `INSERT INTO booth_surveys (${FIELDS.join(', ')}) VALUES (${placeholders}) RETURNING *`,
     values
   );
+  // 更新邀请码使用次数
+  if (data.invite_code) {
+    await pool.query(
+      'UPDATE invite_codes SET usage_count = usage_count + 1 WHERE code = $1',
+      [data.invite_code]
+    );
+  }
   return result.rows[0];
 }
 
 async function getSurveys(page = 1, limit = 50) {
   const offset = (page - 1) * limit;
   const result = await pool.query(
-    `SELECT id, survey_name, location, main_vehicle_types, booth_level, created_at 
+    `SELECT id, survey_name, location, main_vehicle_types, booth_level, 
+            invite_code, customer_name, created_at 
      FROM booth_surveys ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
     [limit, offset]
   );
@@ -103,8 +135,7 @@ async function getSurveys(page = 1, limit = 50) {
   return {
     records: result.rows,
     total: parseInt(countResult.rows[0].count),
-    page,
-    limit
+    page, limit
   };
 }
 
@@ -123,7 +154,69 @@ async function deleteSurvey(id) {
   return result.rowCount > 0;
 }
 
-module.exports = { 
-  pool, initDB, insertSurvey, getSurveys, getSurveyById, 
-  getAllSurveys, deleteSurvey, FIELDS
+// ========== 邀请码相关 ==========
+
+// 生成唯一邀请码（8位大写字母+数字）
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars[crypto.randomInt(0, chars.length)];
+  }
+  return code;
+}
+
+// 创建邀请码
+async function createInviteCode(customerName, description) {
+  let code;
+  // 确保唯一
+  for (let i = 0; i < 10; i++) {
+    code = generateCode();
+    const existing = await pool.query('SELECT id FROM invite_codes WHERE code = $1', [code]);
+    if (existing.rows.length === 0) break;
+  }
+  const result = await pool.query(
+    'INSERT INTO invite_codes (code, customer_name, description) VALUES ($1, $2, $3) RETURNING *',
+    [code, customerName, description || null]
+  );
+  return result.rows[0];
+}
+
+// 获取所有邀请码
+async function getInviteCodes() {
+  const result = await pool.query(
+    'SELECT * FROM invite_codes ORDER BY created_at DESC'
+  );
+  return result.rows;
+}
+
+// 校验邀请码
+async function verifyInviteCode(code) {
+  if (!code) return null;
+  const result = await pool.query(
+    'SELECT * FROM invite_codes WHERE code = $1 AND is_active = TRUE',
+    [code.toUpperCase()]
+  );
+  return result.rows[0] || null;
+}
+
+// 删除邀请码
+async function deleteInviteCode(id) {
+  const result = await pool.query('DELETE FROM invite_codes WHERE id = $1 RETURNING id', [id]);
+  return result.rowCount > 0;
+}
+
+// 切换邀请码启用状态
+async function toggleInviteCode(id) {
+  const result = await pool.query(
+    'UPDATE invite_codes SET is_active = NOT is_active WHERE id = $1 RETURNING *',
+    [id]
+  );
+  return result.rows[0];
+}
+
+module.exports = {
+  pool, initDB, insertSurvey, getSurveys, getSurveyById,
+  getAllSurveys, deleteSurvey, FIELDS,
+  createInviteCode, getInviteCodes, verifyInviteCode, deleteInviteCode, toggleInviteCode
 };

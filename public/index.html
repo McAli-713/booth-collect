@@ -128,15 +128,56 @@
       color: #f57f17;
       margin-bottom: 14px;
     }
+    .invalid-page {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .invalid-page .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .invalid-page h2 {
+      color: #e53935;
+      margin-bottom: 12px;
+    }
+    .invalid-page p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .customer-banner {
+      background: #e8f0fe;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #1a73e8;
+      text-align: center;
+    }
+    .customer-banner strong { color: #0d47a1; }
   </style>
 </head>
 <body>
   <div class="toast" id="toast"></div>
-  <div class="container">
+
+  <!-- 无效链接页面 -->
+  <div class="invalid-page" id="invalidPage">
+    <div class="container">
+      <div class="icon">🔒</div>
+      <h2>链接无效</h2>
+      <p>您访问的链接无效或已失效。<br>请联系管理员获取有效的专属勘测链接。</p>
+    </div>
+  </div>
+
+  <!-- 表单页面 -->
+  <div class="container" id="formContainer" style="display:none;">
     <h1>现场喷房勘测</h1>
     <div class="subtitle">On-site Spray Booth Survey</div>
+    <div class="customer-banner" id="customerBanner"></div>
     
     <form id="surveyForm">
+      <input type="hidden" name="invite_code" id="inviteCode">
       <!-- 一、现场概述 -->
       <div class="section">
         <div class="section-title">一、现场概述</div>
@@ -391,6 +432,34 @@
       setTimeout(() => { toast.style.display = 'none'; }, 3000);
     }
 
+    // 页面加载时校验邀请码
+    async function checkInviteCode() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+
+      if (!code) {
+        document.getElementById('invalidPage').style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/verify-code?code=' + encodeURIComponent(code));
+        const data = await res.json();
+
+        if (data.valid) {
+          document.getElementById('formContainer').style.display = 'block';
+          document.getElementById('inviteCode').value = data.code;
+          document.getElementById('customerBanner').innerHTML =
+            '客户：<strong>' + data.customer_name + '</strong>';
+          document.title = '现场喷房勘测 - ' + data.customer_name;
+        } else {
+          document.getElementById('invalidPage').style.display = 'block';
+        }
+      } catch (err) {
+        document.getElementById('invalidPage').style.display = 'block';
+      }
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       submitBtn.disabled = true;
@@ -406,10 +475,11 @@
           body: JSON.stringify(data)
         });
         const result = await res.json();
-        
+
         if (res.ok) {
           showToast('提交成功！', 'success');
           form.reset();
+          document.getElementById('inviteCode').value = data.invite_code;
           window.scrollTo(0, 0);
         } else {
           showToast(result.error || '提交失败', 'error');
@@ -421,6 +491,8 @@
         submitBtn.textContent = '提交勘测记录';
       }
     });
+
+    checkInviteCode();
   </script>
 </body>
 </html>
