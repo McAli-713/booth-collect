@@ -1,49 +1,17 @@
 const { Pool } = require('pg');
-const dns = require('dns');
-const { URL } = require('url');
 require('dotenv').config();
 
-let pool = null;
-
-// 初始化连接池：强制将数据库域名解析为 IPv4 地址，避免 Render 免费版 IPv6 不可达
-async function initPool() {
-  if (pool) return pool;
-  
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) throw new Error('DATABASE_URL 环境变量未设置');
-  
-  const parsed = new URL(dbUrl);
-  const hostname = parsed.hostname;
-  
-  // 强制解析为 IPv4
-  const addresses = await new Promise((resolve, reject) => {
-    dns.resolve4(hostname, (err, addrs) => {
-      if (err) reject(err);
-      else resolve(addrs);
-    });
-  });
-  
-  const ipv4 = addresses[0];
-  console.log(`数据库 ${hostname} 解析为 IPv4: ${ipv4}`);
-  
-  // 用 IPv4 地址重建连接字符串
-  const ipv4Url = dbUrl.replace(hostname, ipv4);
-  
-  pool = new Pool({
-    connectionString: ipv4Url,
-    ssl: {
-      rejectUnauthorized: false,
-      servername: hostname
-    },
-    connectionTimeoutMillis: 15000
-  });
-  
-  return pool;
-}
+// Neon 数据库连接（域名本身支持 IPv4，无需强制解析）
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  },
+  connectionTimeoutMillis: 15000
+});
 
 // 初始化数据库表 - 现场喷房勘测
 async function initDB() {
-  await initPool();
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS booth_surveys (
@@ -115,7 +83,6 @@ const FIELDS = [
 ];
 
 async function insertSurvey(data) {
-  await initPool();
   const placeholders = FIELDS.map((_, i) => `$${i + 1}`).join(', ');
   const values = FIELDS.map(f => data[f] || null);
   const result = await pool.query(
@@ -126,7 +93,6 @@ async function insertSurvey(data) {
 }
 
 async function getSurveys(page = 1, limit = 50) {
-  await initPool();
   const offset = (page - 1) * limit;
   const result = await pool.query(
     `SELECT id, survey_name, location, main_vehicle_types, booth_level, created_at 
@@ -143,24 +109,21 @@ async function getSurveys(page = 1, limit = 50) {
 }
 
 async function getSurveyById(id) {
-  await initPool();
   const result = await pool.query('SELECT * FROM booth_surveys WHERE id = $1', [id]);
   return result.rows[0];
 }
 
 async function getAllSurveys() {
-  await initPool();
   const result = await pool.query('SELECT * FROM booth_surveys ORDER BY created_at DESC');
   return result.rows;
 }
 
 async function deleteSurvey(id) {
-  await initPool();
   const result = await pool.query('DELETE FROM booth_surveys WHERE id = $1 RETURNING id', [id]);
   return result.rowCount > 0;
 }
 
 module.exports = { 
-  initPool, initDB, insertSurvey, getSurveys, getSurveyById, 
+  pool, initDB, insertSurvey, getSurveys, getSurveyById, 
   getAllSurveys, deleteSurvey, FIELDS
 };
