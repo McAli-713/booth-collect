@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>喷房数据管理后台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+    }
+    .header {
+      background: #1a73e8;
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 20px; }
+    .header .actions { display: flex; gap: 12px; }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-primary { background: #fff; color: #1a73e8; }
+    .btn-danger { background: #e53935; color: #fff; }
+    .btn-secondary { background: #f0f0f0; color: #333; }
+    .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stat-card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; color: #1a73e8; }
+    .table-container {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      background: #f8f9fa;
+      padding: 12px 10px;
+      text-align: left;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #e8e8e8;
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tr:hover { background: #f8f9fa; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-pass { background: #e8f5e9; color: #2e7d32; }
+    .badge-fail { background: #ffebee; color: #c62828; }
+    .badge-rework { background: #fff3e0; color: #e65100; }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+    }
+    .pagination button {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pagination .active { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+    .pagination span { font-size: 14px; color: #666; }
+    .empty { text-align: center; padding: 40px; color: #999; }
+    .login-box {
+      max-width: 400px;
+      margin: 100px auto;
+      background: #fff;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .login-box h2 { text-align: center; margin-bottom: 24px; color: #1a73e8; }
+    .login-box input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    .login-box button {
+      width: 100%;
+      padding: 12px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .error-msg { color: #e53935; font-size: 13px; margin-bottom: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="loginView" style="display:none;">
+    <div class="login-box">
+      <h2>管理后台登录</h2>
+      <div class="error-msg" id="loginError"></div>
+      <input type="text" id="loginUser" placeholder="用户名">
+      <input type="password" id="loginPass" placeholder="密码">
+      <button onclick="doLogin()">登录</button>
+    </div>
+  </div>
+
+  <div id="mainView" style="display:none;">
+    <div class="header">
+      <h1>喷房数据管理后台</h1>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="exportExcel()">导出 Excel</button>
+        <button class="btn btn-secondary" onclick="logout()">退出</button>
+      </div>
+    </div>
+    <div class="container">
+      <div class="stats">
+        <div class="stat-card">
+          <div class="label">总记录数</div>
+          <div class="value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">合格数</div>
+          <div class="value" id="statPass" style="color:#2e7d32;">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">不合格数</div>
+          <div class="value" id="statFail" style="color:#c62828;">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">返工数</div>
+          <div class="value" id="statRework" style="color:#e65100;">0</div>
+        </div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>喷房</th>
+              <th>操作员</th>
+              <th>产品</th>
+              <th>涂料</th>
+              <th>颜色</th>
+              <th>电压</th>
+              <th>电流</th>
+              <th>流量</th>
+              <th>压力</th>
+              <th>膜厚</th>
+              <th>质量</th>
+              <th>提交时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentPage = 1;
+    const pageSize = 20;
+    let authHeader = null;
+
+    // 检查是否已登录
+    function checkAuth() {
+      const saved = localStorage.getItem('spray_admin_auth');
+      if (saved) {
+        authHeader = saved;
+        showMain();
+      } else {
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      document.getElementById('loginView').style.display = 'block';
+      document.getElementById('mainView').style.display = 'none';
+    }
+
+    function showMain() {
+      document.getElementById('loginView').style.display = 'none';
+      document.getElementById('mainView').style.display = 'block';
+      loadRecords();
+    }
+
+    async function doLogin() {
+      const user = document.getElementById('loginUser').value;
+      const pass = document.getElementById('loginPass').value;
+      authHeader = 'Basic ' + btoa(user + ':' + pass);
+      
+      try {
+        const res = await fetch('/api/records?page=1&limit=1', {
+          headers: { 'Authorization': authHeader }
+        });
+        if (res.ok) {
+          localStorage.setItem('spray_admin_auth', authHeader);
+          showMain();
+        } else {
+          document.getElementById('loginError').textContent = '用户名或密码错误';
+        }
+      } catch (err) {
+        document.getElementById('loginError').textContent = '网络错误';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('spray_admin_auth');
+      authHeader = null;
+      showLogin();
+    }
+
+    async function loadRecords() {
+      try {
+        const res = await fetch(`/api/records?page=${currentPage}&limit=${pageSize}`, {
+          headers: { 'Authorization': authHeader }
+        });
+        if (res.status === 401) { logout(); return; }
+        const data = await res.json();
+        
+        renderTable(data.records);
+        renderPagination(data.total);
+        renderStats(data.records);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderTable(records) {
+      const tbody = document.getElementById('tableBody');
+      if (records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="14" class="empty">暂无数据</td></tr>';
+        return;
+      }
+      tbody.innerHTML = records.map(r => {
+        let badgeClass = 'badge-pass';
+        if (r.quality_result === '不合格') badgeClass = 'badge-fail';
+        else if (r.quality_result === '返工') badgeClass = 'badge-rework';
+        return `
+          <tr>
+            <td>${r.id}</td>
+            <td>${r.booth_number}</td>
+            <td>${r.operator_name}</td>
+            <td>${r.product_name || '-'}</td>
+            <td>${r.coating_type || '-'}</td>
+            <td>${r.color_code || '-'}</td>
+            <td>${r.voltage || '-'}</td>
+            <td>${r.current || '-'}</td>
+            <td>${r.flow_rate || '-'}</td>
+            <td>${r.spray_pressure || '-'}</td>
+            <td>${r.thickness || '-'}</td>
+            <td><span class="badge ${badgeClass}">${r.quality_result || '-'}</span></td>
+            <td>${new Date(r.created_at).toLocaleString('zh-CN')}</td>
+            <td><button class="btn btn-danger" style="padding:4px 10px;font-size:12px;" onclick="deleteRecord(${r.id})">删除</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderStats(records) {
+      // 这里只统计当前页，实际应该统计全部，简化处理
+      const pass = records.filter(r => r.quality_result === '合格').length;
+      const fail = records.filter(r => r.quality_result === '不合格').length;
+      const rework = records.filter(r => r.quality_result === '返工').length;
+      document.getElementById('statTotal').textContent = records.length + ' (当前页)';
+      document.getElementById('statPass').textContent = pass;
+      document.getElementById('statFail').textContent = fail;
+      document.getElementById('statRework').textContent = rework;
+    }
+
+    function renderPagination(total) {
+      const totalPages = Math.ceil(total / pageSize);
+      const pag = document.getElementById('pagination');
+      pag.innerHTML = `
+        <button onclick="goPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+        <span>第 ${currentPage} / ${totalPages} 页，共 ${total} 条</span>
+        <button onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+      `;
+    }
+
+    function goPage(page) {
+      currentPage = page;
+      loadRecords();
+    }
+
+    async function deleteRecord(id) {
+      if (!confirm('确定删除这条记录吗？')) return;
+      try {
+        const res = await fetch(`/api/records/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': authHeader }
+        });
+        if (res.ok) {
+          loadRecords();
+        }
+      } catch (err) {
+        alert('删除失败');
+      }
+    }
+
+    function exportExcel() {
+      // 带认证的下载
+      fetch('/api/export', { headers: { 'Authorization': authHeader } })
+        .then(res => {
+          if (res.status === 401) { logout(); return; }
+          return res.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `喷房记录_${new Date().toISOString().slice(0,10)}.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        });
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>
