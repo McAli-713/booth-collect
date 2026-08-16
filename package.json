@@ -4,7 +4,7 @@
   "description": "喷房在线数据采集系统 - Render + Supabase 版",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --dns-result-order=ipv4first server.js",
     "build": "echo 'No build step required'"
   },
   "dependencies": {

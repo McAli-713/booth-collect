@@ -3,7 +3,7 @@ services:
     name: spray-booth-collector
     runtime: node
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: node --dns-result-order=ipv4first server.js
     envVars:
       - key: DATABASE_URL
         sync: false
