@@ -5,7 +5,10 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+  // 强制使用 IPv4，避免 Render 免费版 IPv6 不可达问题
+  family: 4,
+  connectionTimeoutMillis: 10000
 });
 
 // 初始化数据库表 - 现场喷房勘测
