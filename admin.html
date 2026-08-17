@@ -335,6 +335,28 @@
     }
     .inline-photos .photo-grid img { height: 80px; }
     .detail-section-full { grid-column: 1 / -1; }
+    /* PDF导出模式：照片放大为单列等宽 */
+    .pdf-exporting .photo-grid {
+      grid-template-columns: 1fr !important;
+      gap: 12px !important;
+    }
+    .pdf-exporting .photo-grid img {
+      width: 100% !important;
+      height: auto !important;
+      max-height: none !important;
+      object-fit: contain !important;
+      border-radius: 4px !important;
+    }
+    .pdf-exporting .inline-photos {
+      background: transparent !important;
+      padding: 0 !important;
+    }
+    .pdf-exporting .inline-photos .photo-label {
+      margin-bottom: 8px !important;
+    }
+    .pdf-exporting {
+      padding-bottom: 0 !important;
+    }
     /* PDF导出按钮 */
     .pdf-export-btn {
       float: right;
@@ -771,6 +793,34 @@
     function restoreDetailImages(originals) {
       originals.forEach(function(o) { o.el.src = o.src; });
     }
+    // 裁剪canvas底部空白区域（白色/近白色像素），减小PDF体积
+    function trimCanvasBottom(canvas, threshold) {
+      threshold = threshold || 250; // 像素值>=threshold视为白色
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      // 从底部往上逐行扫描，找到第一个非全白行
+      let trimTo = h;
+      for (let y = h - 1; y >= 0; y--) {
+        const imgData = ctx.getImageData(0, y, w, 1).data;
+        let allWhite = true;
+        for (let x = 0; x < imgData.length; x += 4) {
+          if (imgData[x] < threshold || imgData[x+1] < threshold || imgData[x+2] < threshold) {
+            allWhite = false;
+            break;
+          }
+        }
+        if (!allWhite) { trimTo = y + 1; break; }
+      }
+      if (trimTo < h) {
+        const trimmed = document.createElement('canvas');
+        trimmed.width = w;
+        trimmed.height = trimTo;
+        trimmed.getContext('2d').drawImage(canvas, 0, 0, w, trimTo, 0, 0, w, trimTo);
+        return trimmed;
+      }
+      return canvas;
+    }
     async function exportDetailPDF() {
       const element = document.getElementById('detailContent');
       if (!element || !element.innerHTML.trim()) { alert('暂无内容可导出'); return; }
@@ -778,18 +828,25 @@
       const originalText = btn.textContent;
       btn.disabled = true;
       btn.textContent = '生成中...';
+      // 切换到PDF导出模式：照片等宽放大
+      element.classList.add('pdf-exporting');
       const restoredImgs = compressDetailImages(element);
       try {
+        // 等待图片重新布局
+        await new Promise(r => setTimeout(r, 100));
         const canvas = await html2canvas(element, { scale: 1.5, useCORS: true, logging: false, backgroundColor: '#ffffff' });
+        element.classList.remove('pdf-exporting');
         restoreDetailImages(restoredImgs);
-        const imgData = canvas.toDataURL('image/jpeg', 0.82);
+        // 裁剪底部空白
+        const trimmedCanvas = trimCanvasBottom(canvas);
+        const imgData = trimmedCanvas.toDataURL('image/jpeg', 0.82);
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         const margin = 10;
         const imgWidth = pdfWidth - margin * 2;
-        const imgHeight = canvas.height * imgWidth / canvas.width;
+        const imgHeight = trimmedCanvas.height * imgWidth / trimmedCanvas.width;
         let heightLeft = imgHeight;
         let position = margin;
         pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
@@ -803,6 +860,7 @@
         const name = (currentDetailData && currentDetailData.customer_name) || (currentDetailData && currentDetailData.survey_name) || 'survey';
         pdf.save('喷房勘测_' + name + '_' + new Date().toISOString().slice(0,10) + '.pdf');
       } catch (err) {
+        element.classList.remove('pdf-exporting');
         restoreDetailImages(restoredImgs);
         alert('PDF导出失败：' + err.message);
       } finally {
