@@ -128,6 +128,105 @@
       color: #f57f17;
       margin-bottom: 14px;
     }
+    /* 图片上传 */
+    .upload-section {
+      margin-bottom: 20px;
+    }
+    .upload-area {
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #fafafa;
+    }
+    .upload-area:hover {
+      border-color: #1a73e8;
+      background: #f0f7ff;
+    }
+    .upload-area .upload-icon { font-size: 28px; margin-bottom: 6px; }
+    .upload-area .upload-text { font-size: 13px; color: #555; font-weight: 500; }
+    .upload-area .upload-hint { font-size: 11px; color: #999; margin-top: 4px; }
+    .upload-area input[type="file"] { display: none; }
+    .thumb-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .thumb-item {
+      position: relative;
+      width: 70px;
+      height: 70px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #ddd;
+    }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+    .thumb-del {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border: none;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .thumb-del:hover { background: rgba(229,57,53,0.9); }
+    .img-preview-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .img-preview-modal.active { display: flex; }
+    .img-preview-modal img { max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; }
+    .img-preview-modal .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    /* 条件选填 */
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .radio-group input[type="radio"] { width: 16px; height: 16px; cursor: pointer; }
+    .conditional-section {
+      display: none;
+      margin-top: 8px;
+    }
+    .conditional-section.visible { display: block; }
     .invalid-page {
       display: none;
       text-align: center;
@@ -226,8 +325,14 @@
         </div>
         
         <div class="form-group">
-          <label>电梯内部尺寸 <span class="optional">（选填）</span></label>
-          <input type="text" name="elevator_dimensions" placeholder="例：5450×2255mm">
+          <label>现场是否有货梯（设备运输用）</label>
+          <div class="radio-group">
+            <label><input type="radio" name="has_elevator" value="yes" onchange="toggleSection('elevator', true)"> 有</label>
+            <label><input type="radio" name="has_elevator" value="no" onchange="toggleSection('elevator', false)" checked> 无</label>
+          </div>
+          <div class="conditional-section" id="elevatorSection">
+            <input type="text" name="elevator_dimensions" placeholder="电梯内部尺寸，例：5450×2255mm">
+          </div>
         </div>
         
         <div class="form-group">
@@ -235,8 +340,16 @@
           <input type="text" name="underground_utilities" placeholder="例：无 / 有钢筋">
         </div>
 
-        <div class="photo-note">
-          提示：喷房内部及四周照片、地下管线图纸请单独保存，后续可通过备注说明或邮件补充。
+        <!-- 喷房现场照片 -->
+        <div class="upload-section">
+          <label>喷房内部及四周照片 <span class="required">*</span></label>
+          <div class="upload-area" onclick="document.getElementById('boothPhotos').click()">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">点击或拖拽上传喷房现场照片</div>
+            <div class="upload-hint">建议拍摄：大门全景、内部全景、底部格栅、立柱结构</div>
+            <input type="file" id="boothPhotos" accept="image/*" multiple onchange="handlePhotoUpload(this, 'booth')">
+          </div>
+          <div class="thumb-list" id="boothThumbList"></div>
         </div>
 
         <!-- 控制柜安装位置 -->
@@ -266,7 +379,12 @@
         </div>
 
         <!-- 墙面烤灯位置 -->
-        <div class="subsection">墙面烤灯位置 <span class="optional">（选填）</span></div>
+        <div class="subsection">墙面烤灯位置</div>
+        <div class="radio-group">
+          <label><input type="radio" name="has_lamp" value="yes" onchange="toggleSection('lamp', true)"> 有</label>
+          <label><input type="radio" name="has_lamp" value="no" onchange="toggleSection('lamp', false)" checked> 无</label>
+        </div>
+        <div class="conditional-section" id="lampSection">
         
         <div class="row-3">
           <div class="form-group">
@@ -297,6 +415,7 @@
             <input type="text" name="lamp_to_lamp_2" placeholder="例：200mm">
           </div>
         </div>
+        </div>
 
         <div class="row">
           <div class="form-group">
@@ -306,6 +425,28 @@
           <div class="form-group">
             <label>220V电源位置</label>
             <input type="text" name="power_supply_location" placeholder="描述电源插座位置">
+          </div>
+        </div>
+
+        <!-- 气源/电源照片 -->
+        <div class="row">
+          <div class="form-group">
+            <label>气源点位照片</label>
+            <div class="upload-area" onclick="document.getElementById('airPhotos').click()" style="padding:14px;">
+              <div class="upload-icon" style="font-size:22px;">📷</div>
+              <div class="upload-text" style="font-size:12px;">上传气源接口照片</div>
+              <input type="file" id="airPhotos" accept="image/*" multiple onchange="handlePhotoUpload(this, 'air')">
+            </div>
+            <div class="thumb-list" id="airThumbList"></div>
+          </div>
+          <div class="form-group">
+            <label>电源点位照片</label>
+            <div class="upload-area" onclick="document.getElementById('powerPhotos').click()" style="padding:14px;">
+              <div class="upload-icon" style="font-size:22px;">📷</div>
+              <div class="upload-text" style="font-size:12px;">上传电源插座照片</div>
+              <input type="file" id="powerPhotos" accept="image/*" multiple onchange="handlePhotoUpload(this, 'power')">
+            </div>
+            <div class="thumb-list" id="powerThumbList"></div>
           </div>
         </div>
       </div>
@@ -386,26 +527,40 @@
             <input type="text" name="edge_bar_width" placeholder="例：20mm">
           </div>
         </div>
-        
-        <div class="row">
-          <div class="form-group">
-            <label>水泥墩长度 <span class="optional">（选填）</span></label>
-            <input type="text" name="concrete_pier_length" placeholder="例：400mm">
-          </div>
-          <div class="form-group">
-            <label>水泥墩高度 <span class="optional">（选填）</span></label>
-            <input type="text" name="concrete_pier_height" placeholder="例：250mm">
+
+        <!-- 水泥墩 -->
+        <div class="radio-group">
+          <label><input type="radio" name="has_pier" value="yes" onchange="toggleSection('pier', true)"> 有水泥墩</label>
+          <label><input type="radio" name="has_pier" value="no" onchange="toggleSection('pier', false)" checked> 无</label>
+        </div>
+        <div class="conditional-section" id="pierSection">
+          <div class="row">
+            <div class="form-group">
+              <label>水泥墩长度</label>
+              <input type="text" name="concrete_pier_length" placeholder="例：400mm">
+            </div>
+            <div class="form-group">
+              <label>水泥墩高度</label>
+              <input type="text" name="concrete_pier_height" placeholder="例：250mm">
+            </div>
           </div>
         </div>
-        
-        <div class="row">
-          <div class="form-group">
-            <label>平面斜坡长度 <span class="optional">（选填）</span></label>
-            <input type="text" name="ramp_length" placeholder="例：1000mm">
-          </div>
-          <div class="form-group">
-            <label>斜坡高度 <span class="optional">（选填）</span></label>
-            <input type="text" name="ramp_height" placeholder="例：100mm">
+
+        <!-- 斜坡 -->
+        <div class="radio-group">
+          <label><input type="radio" name="has_ramp" value="yes" onchange="toggleSection('ramp', true)"> 有斜坡</label>
+          <label><input type="radio" name="has_ramp" value="no" onchange="toggleSection('ramp', false)" checked> 无</label>
+        </div>
+        <div class="conditional-section" id="rampSection">
+          <div class="row">
+            <div class="form-group">
+              <label>平面斜坡长度</label>
+              <input type="text" name="ramp_length" placeholder="例：1000mm">
+            </div>
+            <div class="form-group">
+              <label>斜坡高度</label>
+              <input type="text" name="ramp_height" placeholder="例：100mm">
+            </div>
           </div>
         </div>
       </div>
@@ -420,16 +575,128 @@
     </form>
   </div>
 
+  <!-- 图片预览模态框 -->
+  <div class="img-preview-modal" id="imgPreviewModal" onclick="closeImgPreview()">
+    <button class="close-btn" onclick="closeImgPreview()">×</button>
+    <img id="previewImg" src="" alt="预览">
+  </div>
+
   <script>
     const form = document.getElementById('surveyForm');
     const toast = document.getElementById('toast');
     const submitBtn = document.getElementById('submitBtn');
+
+    // 图片存储：{ booth: [base64...], air: [...], power: [...] }
+    const photoStore = { booth: [], air: [], power: [] };
 
     function showToast(message, type = 'success') {
       toast.textContent = message;
       toast.className = 'toast ' + type;
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    // 图片压缩（最大宽高1280px，质量0.7）
+    function compressImage(file, maxSize = 1280, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > maxSize || height > maxSize) {
+              if (width > height) {
+                height = Math.round(height * maxSize / width);
+                width = maxSize;
+              } else {
+                width = Math.round(width * maxSize / height);
+                height = maxSize;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // 处理图片上传
+    async function handlePhotoUpload(input, category) {
+      const files = Array.from(input.files);
+      if (files.length === 0) return;
+      const listId = category + 'ThumbList';
+      const list = document.getElementById(listId);
+
+      for (const file of files) {
+        try {
+          const dataUrl = await compressImage(file);
+          const idx = photoStore[category].length;
+          photoStore[category].push(dataUrl);
+
+          const div = document.createElement('div');
+          div.className = 'thumb-item';
+          div.innerHTML = `
+            <img src="${dataUrl}" onclick="previewImg('${category}', ${idx})" alt="照片">
+            <button class="thumb-del" onclick="removePhoto('${category}', ${idx})">×</button>
+          `;
+          list.appendChild(div);
+        } catch (err) {
+          showToast('图片处理失败', 'error');
+        }
+      }
+      input.value = '';
+    }
+
+    // 删除图片
+    function removePhoto(category, idx) {
+      photoStore[category].splice(idx, 1);
+      renderThumbList(category);
+    }
+
+    // 重新渲染缩略图列表
+    function renderThumbList(category) {
+      const list = document.getElementById(category + 'ThumbList');
+      list.innerHTML = '';
+      photoStore[category].forEach((dataUrl, i) => {
+        const div = document.createElement('div');
+        div.className = 'thumb-item';
+        div.innerHTML = `
+          <img src="${dataUrl}" onclick="previewImg('${category}', ${i})" alt="照片">
+          <button class="thumb-del" onclick="removePhoto('${category}', ${i})">×</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    // 预览大图
+    function previewImg(category, idx) {
+      document.getElementById('previewImg').src = photoStore[category][idx];
+      document.getElementById('imgPreviewModal').classList.add('active');
+    }
+    function closeImgPreview() {
+      document.getElementById('imgPreviewModal').classList.remove('active');
+    }
+
+    // 条件选填区域切换
+    function toggleSection(name, show) {
+      const section = document.getElementById(name + 'Section');
+      if (section) {
+        if (show) {
+          section.classList.add('visible');
+        } else {
+          section.classList.remove('visible');
+          // 清空隐藏区域的输入值
+          section.querySelectorAll('input, textarea').forEach(el => { el.value = ''; });
+        }
+      }
     }
 
     // 页面加载时校验邀请码
@@ -468,6 +735,22 @@
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
 
+      // 合并所有分类的图片到 photos 数组
+      const allPhotos = [
+        ...photoStore.booth.map((d, i) => ({ category: 'booth', index: i, data: d })),
+        ...photoStore.air.map((d, i) => ({ category: 'air', index: i, data: d })),
+        ...photoStore.power.map((d, i) => ({ category: 'power', index: i, data: d }))
+      ];
+      data.photos = allPhotos.map(p => p.data); // 只存 base64 数组
+
+      // 校验：喷房照片必填
+      if (photoStore.booth.length === 0) {
+        showToast('请至少上传一张喷房现场照片', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交勘测记录';
+        return;
+      }
+
       try {
         const res = await fetch('/api/submit', {
           method: 'POST',
@@ -479,6 +762,13 @@
         if (res.ok) {
           showToast('提交成功！', 'success');
           form.reset();
+          // 清空图片
+          photoStore.booth = [];
+          photoStore.air = [];
+          photoStore.power = [];
+          renderThumbList('booth');
+          renderThumbList('air');
+          renderThumbList('power');
           document.getElementById('inviteCode').value = data.invite_code;
           window.scrollTo(0, 0);
         } else {

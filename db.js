@@ -71,6 +71,7 @@ async function initDB() {
         ramp_length VARCHAR(50),
         ramp_height VARCHAR(50),
         remarks TEXT,
+        photos TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -79,6 +80,7 @@ async function initDB() {
     try {
       await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS invite_code VARCHAR(20)');
       await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS customer_name VARCHAR(200)');
+      await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS photos TEXT');
     } catch (e) { /* 已存在则忽略 */ }
 
     console.log('数据库表初始化完成');
@@ -102,13 +104,18 @@ const FIELDS = [
   'pit_width', 'edge_bar_width',
   'concrete_pier_length', 'concrete_pier_height',
   'ramp_length', 'ramp_height',
-  'remarks'
+  'remarks', 'photos'
 ];
 
 // ========== 勘测记录相关 ==========
 async function insertSurvey(data) {
   const placeholders = FIELDS.map((_, i) => `$${i + 1}`).join(', ');
-  const values = FIELDS.map(f => data[f] || null);
+  const values = FIELDS.map(f => {
+    if (f === 'photos' && Array.isArray(data[f])) {
+      return JSON.stringify(data[f]);
+    }
+    return data[f] || null;
+  });
   const result = await pool.query(
     `INSERT INTO booth_surveys (${FIELDS.join(', ')}) VALUES (${placeholders}) RETURNING *`,
     values
@@ -141,12 +148,21 @@ async function getSurveys(page = 1, limit = 50) {
 
 async function getSurveyById(id) {
   const result = await pool.query('SELECT * FROM booth_surveys WHERE id = $1', [id]);
-  return result.rows[0];
+  const row = result.rows[0];
+  if (row && row.photos) {
+    try { row.photos = JSON.parse(row.photos); } catch (e) { row.photos = []; }
+  }
+  return row;
 }
 
 async function getAllSurveys() {
   const result = await pool.query('SELECT * FROM booth_surveys ORDER BY created_at DESC');
-  return result.rows;
+  return result.rows.map(r => {
+    if (r.photos) {
+      try { r.photos = JSON.parse(r.photos); } catch (e) { r.photos = []; }
+    }
+    return r;
+  });
 }
 
 async function deleteSurvey(id) {

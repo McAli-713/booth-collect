@@ -245,7 +245,7 @@
     }
 
     /* 二维码弹窗 */
-    .qr-modal { max-width: 400px; text-align: center; }
+    .qr-modal { max-width: 420px; text-align: center; }
     .qr-code {
       margin: 20px auto;
       padding: 15px;
@@ -253,8 +253,17 @@
       border: 1px solid #eee;
       border-radius: 8px;
       display: inline-block;
+      cursor: pointer;
+      transition: box-shadow 0.2s;
     }
+    .qr-code:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     .qr-code canvas { display: block; }
+    .qr-code img { display: block; max-width: 220px; }
+    .qr-tip {
+      font-size: 12px;
+      color: #888;
+      margin-top: 8px;
+    }
     .qr-link {
       background: #f5f7fa;
       padding: 10px;
@@ -263,12 +272,64 @@
       word-break: break-all;
       margin: 15px 0;
       text-align: left;
-      color: #555;
     }
+    .qr-link a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+    .qr-link a:hover { text-decoration: underline; }
     .qr-actions {
       display: flex;
       gap: 10px;
       justify-content: center;
+    }
+    /* 照片展示 */
+    .detail-photos { margin-top: 16px; }
+    .detail-photos h3 { margin-bottom: 10px; }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+    .photo-grid img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid #ddd;
+      transition: transform 0.2s;
+    }
+    .photo-grid img:hover { transform: scale(1.05); }
+    .photo-preview-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .photo-preview-overlay.active { display: flex; }
+    .photo-preview-overlay img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .photo-preview-overlay .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -385,13 +446,21 @@
     <div class="modal qr-modal">
       <button class="modal-close" onclick="closeModal('qrModal')">&times;</button>
       <h2 id="qrTitle">专属勘测链接</h2>
-      <div class="qr-code" id="qrCode"></div>
+      <div class="qr-code" id="qrCode" onclick="openQRLink()" title="点击二维码打开链接"></div>
+      <div class="qr-tip">点击二维码图片可直接打开链接</div>
       <div class="qr-link" id="qrLink"></div>
       <div class="qr-actions">
         <button class="btn btn-info btn-sm" onclick="copyLink()">复制链接</button>
         <button class="btn btn-secondary btn-sm" onclick="downloadQR()">下载二维码</button>
+        <button class="btn btn-success btn-sm" onclick="openQRLink()">打开链接</button>
       </div>
     </div>
+  </div>
+
+  <!-- 照片预览模态框 -->
+  <div class="photo-preview-overlay" id="photoPreview" onclick="closePhotoPreview()">
+    <button class="close-btn" onclick="closePhotoPreview()">×</button>
+    <img id="photoPreviewImg" src="" alt="照片预览">
   </div>
 
   <script>
@@ -399,6 +468,7 @@
     const pageSize = 20;
     let authHeader = null;
     let currentQRUrl = '';
+    let inviteCodeList = [];
 
     const FIELD_LABELS = {
       customer_name: '客户名称', invite_code: '邀请码',
@@ -569,6 +639,19 @@
           html += '</div></div>';
         });
         html += `<div class="detail-item" style="margin-top:10px;"><span class="key">提交时间：</span><span class="val">${new Date(data.created_at).toLocaleString('zh-CN')}</span></div>`;
+
+        // 照片展示
+        if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
+          html += `<div class="detail-photos"><h3>现场照片（${data.photos.length}张）</h3><div class="photo-grid">`;
+          data.photos.forEach((photo, i) => {
+            const src = typeof photo === 'string' ? photo : (photo.data || photo.url || '');
+            if (src) {
+              html += `<img src="${src}" alt="照片${i+1}" onclick="openPhotoPreview('${src.replace(/'/g, "\\'")}')">`;
+            }
+          });
+          html += '</div></div>';
+        }
+
         document.getElementById('detailContent').innerHTML = html;
         document.getElementById('detailModal').classList.add('active');
       } catch (err) {
@@ -621,26 +704,33 @@
     }
 
     function renderInviteTable(codes) {
+      inviteCodeList = codes;
       const tbody = document.getElementById('inviteTableBody');
       if (codes.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无邀请码，点击上方"生成邀请码"创建</td></tr>';
         return;
       }
-      tbody.innerHTML = codes.map(c => `
+      tbody.innerHTML = codes.map((c, idx) => `
         <tr>
           <td>${c.id}</td>
-          <td><span class="code-text">${c.code}</span></td>
-          <td>${c.customer_name}</td>
+          <td><span class="code-text">${escapeHtml(c.code)}</span></td>
+          <td>${escapeHtml(c.customer_name)}</td>
           <td>${c.usage_count} 次</td>
           <td><span class="badge ${c.is_active ? 'badge-active' : 'badge-inactive'}">${c.is_active ? '启用' : '已禁用'}</span></td>
           <td>${new Date(c.created_at).toLocaleString('zh-CN')}</td>
           <td>
-            <button class="btn btn-info btn-sm" onclick="showQR('${c.code}', '${c.customer_name.replace(/'/g, "\\'")}')">二维码</button>
+            <button class="btn btn-info btn-sm" onclick="showQRByIdx(${idx})">二维码</button>
             <button class="btn ${c.is_active ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleInvite(${c.id})">${c.is_active ? '禁用' : '启用'}</button>
             <button class="btn btn-danger btn-sm" onclick="deleteInvite(${c.id})">删除</button>
           </td>
         </tr>
       `).join('');
+    }
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
     }
 
     async function createInviteCode() {
@@ -691,21 +781,34 @@
     }
 
     // 二维码
+    function showQRByIdx(idx) {
+      const c = inviteCodeList[idx];
+      if (c) showQR(c.code, c.customer_name);
+    }
     function showQR(code, customerName) {
-      const url = window.location.origin + '/?code=' + code;
+      const url = window.location.origin + '/?code=' + encodeURIComponent(code);
       currentQRUrl = url;
-      document.getElementById('qrTitle').textContent = customerName + ' - 专属勘测链接';
-      document.getElementById('qrLink').textContent = url;
-      document.getElementById('qrCode').innerHTML = '';
+      document.getElementById('qrTitle').textContent = (customerName || '客户') + ' - 专属勘测链接';
+      document.getElementById('qrLink').innerHTML =
+        '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(url) + '</a>';
+      const qrContainer = document.getElementById('qrCode');
+      qrContainer.innerHTML = '';
 
       QRCode.toCanvas(url, { width: 220, margin: 2 }, function (err, canvas) {
         if (err) {
-          document.getElementById('qrCode').innerHTML = '<p>二维码生成失败</p>';
+          qrContainer.innerHTML = '<p style="color:#e53935;font-size:13px;">二维码生成失败，请检查网络</p>';
         } else {
-          document.getElementById('qrCode').appendChild(canvas);
+          canvas.style.display = 'block';
+          qrContainer.appendChild(canvas);
         }
       });
       document.getElementById('qrModal').classList.add('active');
+    }
+
+    function openQRLink() {
+      if (currentQRUrl) {
+        window.open(currentQRUrl, '_blank', 'noopener,noreferrer');
+      }
     }
 
     function copyLink() {
@@ -723,6 +826,8 @@
         link.download = '喷房勘测二维码.png';
         link.href = canvas.toDataURL();
         link.click();
+      } else {
+        alert('二维码尚未生成完成，请稍候');
       }
     }
 
@@ -736,6 +841,15 @@
         if (e.target === this) this.classList.remove('active');
       });
     });
+
+    // 照片预览
+    function openPhotoPreview(src) {
+      document.getElementById('photoPreviewImg').src = src;
+      document.getElementById('photoPreview').classList.add('active');
+    }
+    function closePhotoPreview() {
+      document.getElementById('photoPreview').classList.remove('active');
+    }
 
     checkAuth();
   </script>
