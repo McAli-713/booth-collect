@@ -873,12 +873,12 @@
             <div class="invite-link-cell" title="${escapeHtml(link)}">${escapeHtml(link)}</div>
           </td>
           <td>${c.usage_count} 次</td>
-          <td><span class="badge ${c.is_active ? 'badge-active' : 'badge-inactive'}">${c.is_active ? '启用' : '已禁用'}</span></td>
+          <td>${c.used ? '<span class="badge badge-used" title="提交时间: ' + (c.used_at ? new Date(c.used_at).toLocaleString('zh-CN') : '') + '">已提交</span>' : (c.is_active ? '<span class="badge badge-active">启用</span>' : '<span class="badge badge-inactive">已禁用</span>')}</td>
           <td>${new Date(c.created_at).toLocaleString('zh-CN')}</td>
           <td>
             <button class="btn btn-info btn-sm" onclick="showQRByIdx(${idx})">二维码</button>
             <button class="btn btn-success btn-sm" onclick="copyLinkByIdx(${idx})">复制链接</button>
-            <button class="btn ${c.is_active ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleInvite(${c.id})">${c.is_active ? '禁用' : '启用'}</button>
+            ${c.used ? '<button class="btn btn-sm" style="opacity:0.4;cursor:not-allowed;" disabled title="已提交的邀请码不可重新启用">启用</button>' : '<button class="btn ' + (c.is_active ? 'btn-warning' : 'btn-success') + ' btn-sm" onclick="toggleInvite(' + c.id + ')">' + (c.is_active ? '禁用' : '启用') + '</button>'}
             <button class="btn btn-danger btn-sm" onclick="deleteInvite(${c.id})">删除</button>
           </td>
         </tr>

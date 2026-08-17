@@ -21,6 +21,8 @@ async function initDB() {
         description TEXT,
         is_active BOOLEAN DEFAULT TRUE,
         usage_count INTEGER DEFAULT 0,
+        used BOOLEAN DEFAULT FALSE,
+        used_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -81,6 +83,8 @@ async function initDB() {
       await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS invite_code VARCHAR(20)');
       await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS customer_name VARCHAR(200)');
       await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS photos TEXT');
+      await pool.query('ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS used BOOLEAN DEFAULT FALSE');
+      await pool.query('ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMP');
     } catch (e) { /* 已存在则忽略 */ }
 
     console.log('数据库表初始化完成');
@@ -120,10 +124,10 @@ async function insertSurvey(data) {
     `INSERT INTO booth_surveys (${FIELDS.join(', ')}) VALUES (${placeholders}) RETURNING *`,
     values
   );
-  // 更新邀请码使用次数
+  // 标记邀请码为已使用（一次性提交，提交后立即失效）
   if (data.invite_code) {
     await pool.query(
-      'UPDATE invite_codes SET usage_count = usage_count + 1 WHERE code = $1',
+      'UPDATE invite_codes SET usage_count = usage_count + 1, used = TRUE, used_at = CURRENT_TIMESTAMP, is_active = FALSE WHERE code = $1',
       [data.invite_code]
     );
   }
@@ -210,7 +214,7 @@ async function getInviteCodes() {
 async function verifyInviteCode(code) {
   if (!code) return null;
   const result = await pool.query(
-    'SELECT * FROM invite_codes WHERE code = $1 AND is_active = TRUE',
+    'SELECT * FROM invite_codes WHERE code = $1 AND is_active = TRUE AND used = FALSE',
     [code.toUpperCase()]
   );
   return result.rows[0] || null;
