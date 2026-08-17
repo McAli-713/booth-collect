@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>喷房勘测管理后台</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -771,132 +769,90 @@
         alert('获取详情失败');
       }
     }
-    // 导出前压缩详情页中的大图，减小PDF体积
-    // PDF导出前准备：强制照片等宽放大 + 压缩图片数据
-    function prepareForPDF(element) {
-      const states = [];
-      // 1. 强制 photo-grid 为块级布局（取消CSS Grid）
-      element.querySelectorAll('.photo-grid').forEach(function(grid) {
-        states.push({ el: grid, prop: 'style', original: grid.getAttribute('style') || '' });
-        grid.style.display = 'block';
-        grid.style.width = '100%';
-      });
-      // 2. 去掉 inline-photos 的灰色背景和内边距
-      element.querySelectorAll('.inline-photos').forEach(function(box) {
-        states.push({ el: box, prop: 'style', original: box.getAttribute('style') || '' });
-        box.style.background = 'transparent';
-        box.style.padding = '0';
-        box.style.marginTop = '8px';
-      });
-      // 3. 所有照片设置为等宽显示 + 压缩
-      const imgs = element.querySelectorAll('.photo-grid img');
-      imgs.forEach(function(img) {
-        states.push({ el: img, prop: 'style', original: img.getAttribute('style') || '' });
-        states.push({ el: img, prop: 'src', original: img.src });
-        img.style.display = 'block';
-        img.style.width = '100%';
-        img.style.height = 'auto';
-        img.style.maxWidth = '100%';
-        img.style.objectFit = 'contain';
-        img.style.borderRadius = '4px';
-        img.style.marginBottom = '10px';
-        img.style.cursor = 'default';
-        // 压缩图片数据（最大1200px宽，保证清晰度同时控制体积）
-        try {
-          const c = document.createElement('canvas');
-          const ctx = c.getContext('2d');
-          const maxW = 1200;
-          const natW = img.naturalWidth || img.width || 800;
-          const natH = img.naturalHeight || img.height || 600;
-          const ratio = Math.min(1, maxW / natW);
-          c.width = Math.round(natW * ratio);
-          c.height = Math.round(natH * ratio);
-          ctx.drawImage(img, 0, 0, c.width, c.height);
-          img.src = c.toDataURL('image/jpeg', 0.8);
-        } catch(e) {}
-      });
-      return states;
-    }
-    function restoreAfterPDF(states) {
-      states.forEach(function(s) {
-        if (s.prop === 'style') {
-          if (s.original) s.el.setAttribute('style', s.original);
-          else s.el.removeAttribute('style');
-        } else if (s.prop === 'src') {
-          s.el.src = s.original;
-        }
-      });
-    }
-    // 裁剪canvas底部空白区域（白色/近白色像素），减小PDF体积
-    function trimCanvasBottom(canvas, threshold) {
-      threshold = threshold || 250; // 像素值>=threshold视为白色
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
-      // 从底部往上逐行扫描，找到第一个非全白行
-      let trimTo = h;
-      for (let y = h - 1; y >= 0; y--) {
-        const imgData = ctx.getImageData(0, y, w, 1).data;
-        let allWhite = true;
-        for (let x = 0; x < imgData.length; x += 4) {
-          if (imgData[x] < threshold || imgData[x+1] < threshold || imgData[x+2] < threshold) {
-            allWhite = false;
-            break;
-          }
-        }
-        if (!allWhite) { trimTo = y + 1; break; }
-      }
-      if (trimTo < h) {
-        const trimmed = document.createElement('canvas');
-        trimmed.width = w;
-        trimmed.height = trimTo;
-        trimmed.getContext('2d').drawImage(canvas, 0, 0, w, trimTo, 0, 0, w, trimTo);
-        return trimmed;
-      }
-      return canvas;
-    }
-    async function exportDetailPDF() {
-      const element = document.getElementById('detailContent');
-      if (!element || !element.innerHTML.trim()) { alert('暂无内容可导出'); return; }
-      const btn = document.querySelector('.pdf-export-btn');
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = '生成中...';
+    // ========== PDF导出（矢量文字 + 等宽图片，使用浏览器打印） ==========
+    function exportDetailPDF() {
+      if (!currentDetailData) { alert('请先打开一条记录详情'); return; }
+      const data = currentDetailData;
+      const boothPhotos = getPhotosByCategory(data.photos, 'booth');
+      const airPhotos = getPhotosByCategory(data.photos, 'air');
+      const powerPhotos = getPhotosByCategory(data.photos, 'power');
+      const name = data.customer_name || data.survey_name || 'survey';
+      const dateStr = new Date(data.created_at).toLocaleString('zh-CN');
 
-      const states = prepareForPDF(element);
-      try {
-        // 等待压缩后的图片加载完成
-        await new Promise(r => setTimeout(r, 300));
-        const canvas = await html2canvas(element, { scale: 1.5, useCORS: true, logging: false, backgroundColor: '#ffffff' });
-        restoreAfterPDF(states);
-        // 裁剪底部空白
-        const trimmedCanvas = trimCanvasBottom(canvas);
-        const imgData = trimmedCanvas.toDataURL('image/jpeg', 0.82);
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-        const imgWidth = pdfWidth - margin * 2;
-        const imgHeight = trimmedCanvas.height * imgWidth / trimmedCanvas.width;
-        let heightLeft = imgHeight;
-        let position = margin;
-        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - margin * 2);
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight + margin;
-          pdf.addPage();
-          pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
-          heightLeft -= (pageHeight - margin * 2);
-        }
-        const name = (currentDetailData && currentDetailData.customer_name) || (currentDetailData && currentDetailData.survey_name) || 'survey';
-        pdf.save('喷房勘测_' + name + '_' + new Date().toISOString().slice(0,10) + '.pdf');
-      } catch (err) {
-        restoreAfterPDF(states);
-        alert('PDF导出失败：' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
+      // 构建字段HTML
+      function fieldHtml(key) {
+        const label = FIELD_LABELS[key] || key;
+        const val = data[key] || '-';
+        return '<div class="field"><span class="label">' + escapeHtml(label) + '：</span><span class="value">' + escapeHtml(String(val)) + '</span></div>';
+      }
+      function photoHtml(photos, title) {
+        if (!photos || photos.length === 0) return '';
+        let h = '<div class="photo-block"><div class="photo-title">' + escapeHtml(title) + '（' + photos.length + '张）</div>';
+        photos.forEach(function(p) {
+          const src = typeof p === 'string' ? p : p.data;
+          h += '<img src="' + src + '" class="photo-img">';
+        });
+        h += '</div>';
+        return h;
+      }
+
+      let bodyHtml = '';
+      SECTIONS.forEach(function(section) {
+        bodyHtml += '<div class="section"><div class="section-title">' + escapeHtml(section.title) + '</div><div class="fields">';
+        section.fields.forEach(function(f) {
+          bodyHtml += fieldHtml(f);
+          if (f === 'air_supply_location') bodyHtml += photoHtml(airPhotos, '气源点位照片');
+          if (f === 'power_supply_location') bodyHtml += photoHtml(powerPhotos, '电源点位照片');
+        });
+        bodyHtml += '</div>';
+        if (section.title === '基本信息') bodyHtml += photoHtml(boothPhotos, '喷房内部及四周照片');
+        bodyHtml += '</div>';
+      });
+      bodyHtml += '<div class="footer">提交时间：' + dateStr + '</div>';
+
+      const printHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>喷房勘测_' + name + '</title>'
+        + '<style>'
+        + '@page { size: A4; margin: 15mm 12mm; }'
+        + '* { box-sizing: border-box; margin: 0; padding: 0; }'
+        + 'body { font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "WenQuanYi Micro Hei", sans-serif; font-size: 11pt; color: #222; line-height: 1.6; }'
+        + '.doc-title { font-size: 16pt; font-weight: 700; text-align: center; margin-bottom: 4px; color: #1a73e8; }'
+        + '.doc-subtitle { font-size: 10pt; text-align: center; color: #888; margin-bottom: 16px; }'
+        + '.section { margin-bottom: 14px; break-inside: avoid; }'
+        + '.section-title { font-size: 12pt; font-weight: 700; color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 4px; margin-bottom: 8px; }'
+        + '.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }'
+        + '.field { font-size: 10.5pt; padding: 2px 0; }'
+        + '.field .label { color: #555; font-weight: 600; }'
+        + '.field .value { color: #222; }'
+        + '.photo-block { margin: 8px 0; break-inside: avoid; }'
+        + '.photo-title { font-size: 10.5pt; font-weight: 600; color: #555; margin-bottom: 6px; }'
+        + '.photo-img { width: 100%; max-width: 100%; height: auto; display: block; margin-bottom: 8px; border-radius: 4px; border: 1px solid #e0e0e0; }'
+        + '.footer { margin-top: 16px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 9.5pt; color: #888; text-align: right; }'
+        + '</style></head><body>'
+        + '<div class="doc-title">喷房现场勘测报告</div>'
+        + '<div class="doc-subtitle">客户：' + escapeHtml(name) + '　|　提交时间：' + dateStr + '</div>'
+        + bodyHtml
+        + '</body></html>';
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+      // 等待图片加载完成后打印
+      const imgs = printWindow.document.querySelectorAll('img');
+      let loaded = 0;
+      const total = imgs.length;
+      function doPrint() {
+        printWindow.focus();
+        printWindow.print();
+      }
+      if (total === 0) {
+        setTimeout(doPrint, 300);
+      } else {
+        imgs.forEach(function(img) {
+          if (img.complete) { loaded++; if (loaded === total) setTimeout(doPrint, 200); }
+          else { img.onload = function() { loaded++; if (loaded === total) setTimeout(doPrint, 200); }; }
+        });
+        // 超时兜底
+        setTimeout(doPrint, 3000);
       }
     }
     async function deleteRecord(id) {
