@@ -19,8 +19,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 initDB();
 
 function authMiddleware(req, res, next) {
-  const adminUser = process.env.ADMIN_USERNAME || 'admin';
-  const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
+  const adminUser = process.env.ADMIN_USERNAME || 'CR001';
+  const adminPass = process.env.ADMIN_PASSWORD || '1234';
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Basic ')) {

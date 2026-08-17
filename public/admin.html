@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>喷房勘测管理后台</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -318,6 +320,26 @@
       transition: transform 0.2s;
     }
     .photo-grid img:hover { transform: scale(1.05); }
+    /* 内联照片（按测量项分类展示） */
+    .inline-photos {
+      margin-top: 8px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+    .inline-photos .photo-label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .inline-photos .photo-grid img { height: 80px; }
+    .detail-section-full { grid-column: 1 / -1; }
+    /* PDF导出按钮 */
+    .pdf-export-btn {
+      float: right;
+      margin-right: 10px;
+    }
     .photo-preview-overlay {
       display: none;
       position: fixed;
@@ -452,8 +474,9 @@
 
   <!-- 详情弹窗 -->
   <div class="modal-overlay" id="detailModal">
-    <div class="modal">
+    <div class="modal" id="detailModalContent">
       <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
+      <button class="btn btn-success btn-sm pdf-export-btn" onclick="exportDetailPDF()">导出 PDF</button>
       <h2>勘测详情</h2>
       <div id="detailContent"></div>
     </div>
@@ -643,42 +666,96 @@
       loadRecords();
     }
 
+    // 按分类提取照片
+    function getPhotosByCategory(photos, category) {
+      if (!photos || !Array.isArray(photos)) return [];
+      return photos.filter(function(p) {
+        if (typeof p === 'string') return category === 'booth';
+        return p.category === category;
+      }).map(function(p) { return typeof p === 'string' ? p : (p.data || p.url || ''); }).filter(Boolean);
+    }
+    function renderPhotoGrid(photos, label) {
+      if (!photos || photos.length === 0) return '';
+      var html = '<div class="inline-photos"><div class="photo-label">' + label + '（' + photos.length + '张）</div><div class="photo-grid">';
+      photos.forEach(function(src, i) {
+        html += '<img src="' + src + '" alt="照片' + (i+1) + '" onclick="openPhotoPreview(\'' + src.replace(/'/g, "\\'") + '\')">';
+      });
+      html += '</div></div>';
+      return html;
+    }
+    var currentDetailData = null;
     async function viewDetail(id) {
       try {
-        const res = await fetch(`/api/records/${id}`, {
+        const res = await fetch('/api/records/' + id, {
           headers: { 'Authorization': authHeader }
         });
         const data = await res.json();
+        currentDetailData = data;
+        const boothPhotos = getPhotosByCategory(data.photos, 'booth');
+        const airPhotos = getPhotosByCategory(data.photos, 'air');
+        const powerPhotos = getPhotosByCategory(data.photos, 'power');
         let html = '';
-        SECTIONS.forEach(section => {
-          html += `<div class="detail-section"><h3>${section.title}</h3><div class="detail-grid">`;
-          section.fields.forEach(f => {
+        SECTIONS.forEach(function(section) {
+          html += '<div class="detail-section"><h3>' + section.title + '</h3><div class="detail-grid">';
+          section.fields.forEach(function(f) {
             const val = data[f];
-            html += `<div class="detail-item"><span class="key">${FIELD_LABELS[f] || f}：</span><span class="val">${val || '-'}</span></div>`;
-          });
-          html += '</div></div>';
-        });
-        html += `<div class="detail-item" style="margin-top:10px;"><span class="key">提交时间：</span><span class="val">${new Date(data.created_at).toLocaleString('zh-CN')}</span></div>`;
-
-        // 照片展示
-        if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
-          html += `<div class="detail-photos"><h3>现场照片（${data.photos.length}张）</h3><div class="photo-grid">`;
-          data.photos.forEach((photo, i) => {
-            const src = typeof photo === 'string' ? photo : (photo.data || photo.url || '');
-            if (src) {
-              html += `<img src="${src}" alt="照片${i+1}" onclick="openPhotoPreview('${src.replace(/'/g, "\\'")}')">`;
+            html += '<div class="detail-item"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + (val || '-') + '</span></div>';
+            if (f === 'air_supply_location' && airPhotos.length > 0) {
+              html += '<div class="detail-item detail-section-full">' + renderPhotoGrid(airPhotos, '气源点位照片') + '</div>';
+            }
+            if (f === 'power_supply_location' && powerPhotos.length > 0) {
+              html += '<div class="detail-item detail-section-full">' + renderPhotoGrid(powerPhotos, '电源点位照片') + '</div>';
             }
           });
-          html += '</div></div>';
-        }
-
+          html += '</div>';
+          if (section.title === '基本信息' && boothPhotos.length > 0) {
+            html += renderPhotoGrid(boothPhotos, '喷房内部及四周照片');
+          }
+          html += '</div>';
+        });
+        html += '<div class="detail-item" style="margin-top:10px;"><span class="key">提交时间：</span><span class="val">' + new Date(data.created_at).toLocaleString('zh-CN') + '</span></div>';
         document.getElementById('detailContent').innerHTML = html;
         document.getElementById('detailModal').classList.add('active');
       } catch (err) {
         alert('获取详情失败');
       }
     }
-
+    async function exportDetailPDF() {
+      const element = document.getElementById('detailContent');
+      if (!element || !element.innerHTML.trim()) { alert('暂无内容可导出'); return; }
+      const btn = document.querySelector('.pdf-export-btn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '生成中...';
+      try {
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        const imgWidth = pdfWidth - margin * 2;
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        let heightLeft = imgHeight;
+        let position = margin;
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - margin * 2);
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight + margin;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+          heightLeft -= (pageHeight - margin * 2);
+        }
+        const name = (currentDetailData && currentDetailData.customer_name) || (currentDetailData && currentDetailData.survey_name) || 'survey';
+        pdf.save('喷房勘测_' + name + '_' + new Date().toISOString().slice(0,10) + '.pdf');
+      } catch (err) {
+        alert('PDF导出失败：' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
     async function deleteRecord(id) {
       if (!confirm('确定删除这条勘测记录吗？')) return;
       try {
