@@ -772,26 +772,60 @@
       }
     }
     // 导出前压缩详情页中的大图，减小PDF体积
-    function compressDetailImages(element) {
-      const imgs = element.querySelectorAll('img');
-      const originals = [];
+    // PDF导出前准备：强制照片等宽放大 + 压缩图片数据
+    function prepareForPDF(element) {
+      const states = [];
+      // 1. 强制 photo-grid 为块级布局（取消CSS Grid）
+      element.querySelectorAll('.photo-grid').forEach(function(grid) {
+        states.push({ el: grid, prop: 'style', original: grid.getAttribute('style') || '' });
+        grid.style.display = 'block';
+        grid.style.width = '100%';
+      });
+      // 2. 去掉 inline-photos 的灰色背景和内边距
+      element.querySelectorAll('.inline-photos').forEach(function(box) {
+        states.push({ el: box, prop: 'style', original: box.getAttribute('style') || '' });
+        box.style.background = 'transparent';
+        box.style.padding = '0';
+        box.style.marginTop = '8px';
+      });
+      // 3. 所有照片设置为等宽显示 + 压缩
+      const imgs = element.querySelectorAll('.photo-grid img');
       imgs.forEach(function(img) {
-        originals.push({ el: img, src: img.src });
+        states.push({ el: img, prop: 'style', original: img.getAttribute('style') || '' });
+        states.push({ el: img, prop: 'src', original: img.src });
+        img.style.display = 'block';
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.maxWidth = '100%';
+        img.style.objectFit = 'contain';
+        img.style.borderRadius = '4px';
+        img.style.marginBottom = '10px';
+        img.style.cursor = 'default';
+        // 压缩图片数据（最大1200px宽，保证清晰度同时控制体积）
         try {
           const c = document.createElement('canvas');
           const ctx = c.getContext('2d');
-          const maxW = 800;
-          const ratio = Math.min(1, maxW / img.naturalWidth);
-          c.width = Math.round(img.naturalWidth * ratio);
-          c.height = Math.round(img.naturalHeight * ratio);
+          const maxW = 1200;
+          const natW = img.naturalWidth || img.width || 800;
+          const natH = img.naturalHeight || img.height || 600;
+          const ratio = Math.min(1, maxW / natW);
+          c.width = Math.round(natW * ratio);
+          c.height = Math.round(natH * ratio);
           ctx.drawImage(img, 0, 0, c.width, c.height);
-          img.src = c.toDataURL('image/jpeg', 0.75);
+          img.src = c.toDataURL('image/jpeg', 0.8);
         } catch(e) {}
       });
-      return originals;
+      return states;
     }
-    function restoreDetailImages(originals) {
-      originals.forEach(function(o) { o.el.src = o.src; });
+    function restoreAfterPDF(states) {
+      states.forEach(function(s) {
+        if (s.prop === 'style') {
+          if (s.original) s.el.setAttribute('style', s.original);
+          else s.el.removeAttribute('style');
+        } else if (s.prop === 'src') {
+          s.el.src = s.original;
+        }
+      });
     }
     // 裁剪canvas底部空白区域（白色/近白色像素），减小PDF体积
     function trimCanvasBottom(canvas, threshold) {
@@ -828,15 +862,13 @@
       const originalText = btn.textContent;
       btn.disabled = true;
       btn.textContent = '生成中...';
-      // 切换到PDF导出模式：照片等宽放大
-      element.classList.add('pdf-exporting');
-      const restoredImgs = compressDetailImages(element);
+
+      const states = prepareForPDF(element);
       try {
-        // 等待图片重新布局
-        await new Promise(r => setTimeout(r, 100));
+        // 等待压缩后的图片加载完成
+        await new Promise(r => setTimeout(r, 300));
         const canvas = await html2canvas(element, { scale: 1.5, useCORS: true, logging: false, backgroundColor: '#ffffff' });
-        element.classList.remove('pdf-exporting');
-        restoreDetailImages(restoredImgs);
+        restoreAfterPDF(states);
         // 裁剪底部空白
         const trimmedCanvas = trimCanvasBottom(canvas);
         const imgData = trimmedCanvas.toDataURL('image/jpeg', 0.82);
@@ -860,8 +892,7 @@
         const name = (currentDetailData && currentDetailData.customer_name) || (currentDetailData && currentDetailData.survey_name) || 'survey';
         pdf.save('喷房勘测_' + name + '_' + new Date().toISOString().slice(0,10) + '.pdf');
       } catch (err) {
-        element.classList.remove('pdf-exporting');
-        restoreDetailImages(restoredImgs);
+        restoreAfterPDF(states);
         alert('PDF导出失败：' + err.message);
       } finally {
         btn.disabled = false;
