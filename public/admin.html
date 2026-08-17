@@ -245,7 +245,7 @@
     }
 
     /* 二维码弹窗 */
-    .qr-modal { max-width: 420px; text-align: center; }
+    .qr-modal { max-width: 460px; text-align: center; }
     .qr-code {
       margin: 20px auto;
       padding: 15px;
@@ -257,8 +257,8 @@
       transition: box-shadow 0.2s;
     }
     .qr-code:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .qr-code canvas { display: block; }
-    .qr-code img { display: block; max-width: 220px; }
+    .qr-code canvas { display: block; cursor: pointer; }
+    .qr-code img { display: block; max-width: 220px; cursor: pointer; }
     .qr-tip {
       font-size: 12px;
       color: #888;
@@ -266,22 +266,39 @@
     }
     .qr-link {
       background: #f5f7fa;
-      padding: 10px;
+      padding: 12px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 13px;
       word-break: break-all;
       margin: 15px 0;
       text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .qr-link a {
+    .qr-link .link-text {
+      flex: 1;
       color: #1a73e8;
       text-decoration: none;
+      font-family: monospace;
+      font-size: 12px;
     }
-    .qr-link a:hover { text-decoration: underline; }
+    .qr-link .link-text:hover { text-decoration: underline; }
     .qr-actions {
       display: flex;
       gap: 10px;
       justify-content: center;
+      flex-wrap: wrap;
+    }
+    /* 邀请码表格中的链接 */
+    .invite-link-cell {
+      font-family: monospace;
+      font-size: 11px;
+      color: #666;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     /* 照片展示 */
     .detail-photos { margin-top: 16px; }
@@ -419,6 +436,7 @@
                 <th>ID</th>
                 <th>邀请码</th>
                 <th>客户名称</th>
+                <th>填表链接</th>
                 <th>使用次数</th>
                 <th>状态</th>
                 <th>创建时间</th>
@@ -446,13 +464,15 @@
     <div class="modal qr-modal">
       <button class="modal-close" onclick="closeModal('qrModal')">&times;</button>
       <h2 id="qrTitle">专属勘测链接</h2>
-      <div class="qr-code" id="qrCode" onclick="openQRLink()" title="点击二维码打开链接"></div>
-      <div class="qr-tip">点击二维码图片可直接打开链接</div>
-      <div class="qr-link" id="qrLink"></div>
+      <div class="qr-code" id="qrCode" onclick="openQRLink()" title="点击二维码图片可直接打开链接"></div>
+      <div class="qr-tip">点击二维码图片可直接打开链接 · 手机扫描即可填写</div>
+      <div class="qr-link" id="qrLink">
+        <a class="link-text" href="#" target="_blank" rel="noopener noreferrer" id="qrLinkText"></a>
+        <button class="btn btn-info btn-sm" onclick="copyLink()" style="flex-shrink:0;">复制</button>
+      </div>
       <div class="qr-actions">
-        <button class="btn btn-info btn-sm" onclick="copyLink()">复制链接</button>
-        <button class="btn btn-secondary btn-sm" onclick="downloadQR()">下载二维码</button>
         <button class="btn btn-success btn-sm" onclick="openQRLink()">打开链接</button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadQR()">下载二维码</button>
       </div>
     </div>
   </div>
@@ -707,24 +727,31 @@
       inviteCodeList = codes;
       const tbody = document.getElementById('inviteTableBody');
       if (codes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无邀请码，点击上方"生成邀请码"创建</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">暂无邀请码，点击上方"生成邀请码"创建</td></tr>';
         return;
       }
-      tbody.innerHTML = codes.map((c, idx) => `
+      const origin = window.location.origin;
+      tbody.innerHTML = codes.map((c, idx) => {
+        const link = origin + '/?code=' + encodeURIComponent(c.code);
+        return `
         <tr>
           <td>${c.id}</td>
           <td><span class="code-text">${escapeHtml(c.code)}</span></td>
           <td>${escapeHtml(c.customer_name)}</td>
+          <td>
+            <div class="invite-link-cell" title="${escapeHtml(link)}">${escapeHtml(link)}</div>
+          </td>
           <td>${c.usage_count} 次</td>
           <td><span class="badge ${c.is_active ? 'badge-active' : 'badge-inactive'}">${c.is_active ? '启用' : '已禁用'}</span></td>
           <td>${new Date(c.created_at).toLocaleString('zh-CN')}</td>
           <td>
             <button class="btn btn-info btn-sm" onclick="showQRByIdx(${idx})">二维码</button>
+            <button class="btn btn-success btn-sm" onclick="copyLinkByIdx(${idx})">复制链接</button>
             <button class="btn ${c.is_active ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleInvite(${c.id})">${c.is_active ? '禁用' : '启用'}</button>
             <button class="btn btn-danger btn-sm" onclick="deleteInvite(${c.id})">删除</button>
           </td>
         </tr>
-      `).join('');
+      `}).join('');
     }
     function escapeHtml(str) {
       if (!str) return '';
@@ -785,26 +812,46 @@
       const c = inviteCodeList[idx];
       if (c) showQR(c.code, c.customer_name);
     }
+    function getInviteLink(code) {
+      return window.location.origin + '/?code=' + encodeURIComponent(code);
+    }
     function showQR(code, customerName) {
-      const url = window.location.origin + '/?code=' + encodeURIComponent(code);
+      const url = getInviteLink(code);
       currentQRUrl = url;
       document.getElementById('qrTitle').textContent = (customerName || '客户') + ' - 专属勘测链接';
-      document.getElementById('qrLink').innerHTML =
-        '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(url) + '</a>';
+      const linkEl = document.getElementById('qrLinkText');
+      if (linkEl) { linkEl.href = url; linkEl.textContent = url; }
       const qrContainer = document.getElementById('qrCode');
       qrContainer.innerHTML = '';
-
-      QRCode.toCanvas(url, { width: 220, margin: 2 }, function (err, canvas) {
-        if (err) {
-          qrContainer.innerHTML = '<p style="color:#e53935;font-size:13px;">二维码生成失败，请检查网络</p>';
-        } else {
-          canvas.style.display = 'block';
-          qrContainer.appendChild(canvas);
-        }
-      });
+      if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+        QRCode.toDataURL(url, { width: 220, margin: 2, errorCorrectionLevel: 'M' }, function (err, dataUrl) {
+          if (err) { fallbackQR(qrContainer, url); }
+          else {
+            const img = document.createElement('img');
+            img.src = dataUrl; img.alt = '勘测链接二维码';
+            img.style.cssText = 'display:block;max-width:220px;cursor:pointer;';
+            img.onclick = function(e) { e.stopPropagation(); openQRLink(); };
+            qrContainer.appendChild(img);
+          }
+        });
+      } else if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+        fallbackQR(qrContainer, url);
+      } else {
+        qrContainer.innerHTML = '<div style="padding:20px;color:#666;font-size:13px;">二维码库加载中...<br>如长时间未显示，请复制下方链接使用</div>';
+      }
       document.getElementById('qrModal').classList.add('active');
     }
-
+    function fallbackQR(container, url) {
+      QRCode.toCanvas(url, { width: 220, margin: 2 }, function (err, canvas) {
+        if (err) {
+          container.innerHTML = '<div style="padding:20px;color:#e53935;font-size:13px;">二维码生成失败<br>请复制下方链接使用</div>';
+        } else {
+          canvas.style.cssText = 'display:block;cursor:pointer;';
+          canvas.onclick = function(e) { e.stopPropagation(); openQRLink(); };
+          container.appendChild(canvas);
+        }
+      });
+    }
     function openQRLink() {
       if (currentQRUrl) {
         window.open(currentQRUrl, '_blank', 'noopener,noreferrer');
@@ -812,20 +859,39 @@
     }
 
     function copyLink() {
+      if (!currentQRUrl) return;
       navigator.clipboard.writeText(currentQRUrl).then(() => {
         alert('链接已复制到剪贴板');
       }).catch(() => {
         prompt('复制以下链接：', currentQRUrl);
       });
     }
+    function copyLinkByIdx(idx) {
+      const c = inviteCodeList[idx];
+      if (!c) return;
+      const link = getInviteLink(c.code);
+      navigator.clipboard.writeText(link).then(() => {
+        alert('链接已复制，可直接发给客户：\n' + link);
+      }).catch(() => {
+        prompt('复制以下链接发给客户：', link);
+      });
+    }
 
     function downloadQR() {
+      const img = document.querySelector('#qrCode img');
+      if (img && img.src) {
+        const a = document.createElement('a');
+        a.download = '喷房勘测二维码.png';
+        a.href = img.src;
+        a.click();
+        return;
+      }
       const canvas = document.querySelector('#qrCode canvas');
       if (canvas) {
-        const link = document.createElement('a');
-        link.download = '喷房勘测二维码.png';
-        link.href = canvas.toDataURL();
-        link.click();
+        const a = document.createElement('a');
+        a.download = '喷房勘测二维码.png';
+        a.href = canvas.toDataURL();
+        a.click();
       } else {
         alert('二维码尚未生成完成，请稍候');
       }
