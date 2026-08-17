@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>现场喷房勘测 | On-site Spray Booth Survey</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f7fa;
+      padding: 16px;
+      color: #333;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 22px;
+      text-align: center;
+      margin-bottom: 4px;
+      color: #1a73e8;
+    }
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .section {
+      margin-bottom: 28px;
+    }
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a73e8;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e8f0fe;
+    }
+    .section-title .en {
+      font-size: 13px;
+      font-weight: 500;
+      color: #90a4ae;
+      margin-left: 6px;
+    }
+    .subsection {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin: 18px 0 10px;
+      padding-left: 8px;
+      border-left: 3px solid #1a73e8;
+    }
+    .subsection .en {
+      font-size: 12px;
+      font-weight: 400;
+      color: #999;
+      margin-left: 4px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    label .en {
+      font-weight: 400;
+      color: #999;
+      font-size: 12px;
+    }
+    label .required { color: #e53935; }
+    label .optional { color: #999; font-weight: normal; font-size: 12px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid #ddd;
+      border-radius: 7px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+    textarea { resize: vertical; min-height: 55px; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .hint {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 3px;
+    }
+    .hint .en { color: #bbb; }
+    button[type="submit"] {
+      width: 100%;
+      padding: 14px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button[type="submit"]:hover { background: #1557b0; }
+    button[type="submit"]:disabled { background: #aaa; cursor: not-allowed; }
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      z-index: 1000;
+      display: none;
+    }
+    .toast.success { background: #43a047; }
+    .toast.error { background: #e53935; }
+    /* 示例图 */
+    .example-img {
+      margin: 10px 0 16px;
+      text-align: center;
+    }
+    .example-img img {
+      max-width: 100%;
+      max-height: 280px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .example-img img:hover { transform: scale(1.02); }
+    .example-img .caption {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+    }
+    .example-img .caption .en { color: #bbb; }
+    .example-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 10px 0 16px;
+    }
+    .example-row .example-img { margin: 0; }
+    .example-row .example-img img { max-height: 200px; }
+    /* 图片上传 */
+    .upload-section {
+      margin-bottom: 20px;
+    }
+    .upload-area {
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #fafafa;
+    }
+    .upload-area:hover {
+      border-color: #1a73e8;
+      background: #f0f7ff;
+    }
+    .upload-area .upload-icon { font-size: 28px; margin-bottom: 6px; }
+    .upload-area .upload-text { font-size: 13px; color: #555; font-weight: 500; }
+    .upload-area .upload-hint { font-size: 11px; color: #999; margin-top: 4px; }
+    .upload-area input[type="file"] { display: none; }
+    .thumb-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .thumb-item {
+      position: relative;
+      width: 70px;
+      height: 70px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #ddd;
+    }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+    .thumb-del {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border: none;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .thumb-del:hover { background: rgba(229,57,53,0.9); }
+    .img-preview-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .img-preview-modal.active { display: flex; }
+    .img-preview-modal img { max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; }
+    .img-preview-modal .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    /* 条件选填 */
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .radio-group input[type="radio"] { width: 16px; height: 16px; cursor: pointer; }
+    .conditional-section {
+      display: none;
+      margin-top: 8px;
+    }
+    .conditional-section.visible { display: block; }
+    .invalid-page {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .invalid-page .icon { font-size: 48px; margin-bottom: 16px; }
+    .invalid-page h2 { color: #e53935; margin-bottom: 12px; }
+    .invalid-page p { color: #666; font-size: 14px; line-height: 1.6; }
+    .customer-banner {
+      background: #e8f0fe;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #1a73e8;
+      text-align: center;
+    }
+    .customer-banner strong { color: #0d47a1; }
+    .cabinet-note {
+      background: #fff3e0;
+      border: 1px solid #ffe0b2;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #e65100;
+      margin-bottom: 12px;
+    }
+    .cabinet-note .en { color: #ef6c00; }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast"></div>
+  <!-- 无效链接页面 -->
+  <div class="invalid-page" id="invalidPage">
+    <div class="container">
+      <div class="icon">🔒</div>
+      <h2>链接无效 / Invalid Link</h2>
+      <p>您访问的链接无效或已失效。<br>The link is invalid or expired.<br>请联系管理员获取有效的专属勘测链接。<br>Please contact admin for a valid survey link.</p>
+    </div>
+  </div>
+  <!-- 表单页面 -->
+  <div class="container" id="formContainer" style="display:none;">
+    <h1>现场喷房勘测</h1>
+    <div class="subtitle">On-site Spray Booth Survey</div>
+    <div class="customer-banner" id="customerBanner"></div>
+    
+    <form id="surveyForm">
+      <input type="hidden" name="invite_code" id="inviteCode">
+      
+      <!-- 一、现场概述 -->
+      <div class="section">
+        <div class="section-title">一、现场概述 <span class="en">I. Site Overview</span></div>
+        
+        <div class="form-group">
+          <label>勘测名称 <span class="required">*</span> <span class="en">/ Survey Name</span></label>
+          <input type="text" name="survey_name" placeholder="如：某某4S店喷房勘测 / e.g.: XX 4S Store Booth Survey" required>
+        </div>
+        
+        <div class="form-group">
+          <label>现场地理位置 <span class="required">*</span> <span class="en">/ Location</span></label>
+          <textarea name="location" placeholder="例：中国浙江省台州市温岭市泽国镇泽楚路926号2幢&#10;e.g.: Building 2, No.926, Zechu Rd, Zeguo Town, Wenling, Taizhou, Zhejiang, China" required></textarea>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>主要喷涂车型 <span class="en">/ Main Vehicle Types</span></label>
+            <input type="text" name="main_vehicle_types" placeholder="例：奔驰、奥迪、特斯拉 / e.g.: Mercedes-Benz, Audi, Tesla">
+          </div>
+          <div class="form-group">
+            <label>喷房加热方式 <span class="en">/ Heating Method</span></label>
+            <input type="text" name="heating_method" placeholder="例：顶部热源或电加热 / e.g.: Overhead Heat or Electric Heating">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>喷房最高气压 <span class="en">/ Max Air Pressure</span></label>
+            <input type="text" name="max_air_pressure" placeholder="例：8bar / e.g.: 8 bar">
+          </div>
+          <div class="form-group">
+            <label>喷房最高温度 <span class="en">/ Max Temperature</span></label>
+            <input type="text" name="max_temperature" placeholder="例：60℃ / e.g.: 60℃">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>地板/楼板厚度 <span class="en">/ Floor/Slab Thickness</span></label>
+            <input type="text" name="floor_thickness" placeholder="例：100mm / e.g.: 100 mm">
+          </div>
+          <div class="form-group">
+            <label>喷房所在楼层 <span class="en">/ Booth Level</span></label>
+            <input type="text" name="booth_level" placeholder="例：一楼 / 三楼 / e.g.: 1st Floor / 3rd Floor">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>现场是否有货梯（设备运输用）<span class="en"> / Freight Elevator for Equipment</span></label>
+          <div class="radio-group">
+            <label><input type="radio" name="has_elevator" value="yes" onchange="toggleSection('elevator', true)"> 有 / Yes</label>
+            <label><input type="radio" name="has_elevator" value="no" onchange="toggleSection('elevator', false)" checked> 无 / No</label>
+          </div>
+          <div class="conditional-section" id="elevatorSection">
+            <input type="text" name="elevator_dimensions" placeholder="电梯内部尺寸，例：5450×2255mm / Elevator internal dims, e.g.: 5450×2255mm">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>喷房地下有无钢筋、水管和电线 <span class="en">/ Rebar, Pipes & Wires Under Booth</span></label>
+          <input type="text" name="underground_utilities" placeholder="例：无 / 有钢筋 / e.g.: None / Has rebar">
+        </div>
+        
+        <!-- 喷房现场照片 + 示例图 -->
+        <div class="upload-section">
+          <label>喷房内部及四周照片 <span class="required">*</span> <span class="en">/ Interior & Surrounding Photos</span></label>
+          <div class="example-row">
+            <div class="example-img">
+              <img src="images/example_booth_1.png" alt="示例图1" onclick="previewExample(this.src)">
+              <div class="caption">示例图 Sample 1</div>
+            </div>
+            <div class="example-img">
+              <img src="images/example_booth_2.png" alt="示例图2" onclick="previewExample(this.src)">
+              <div class="caption">示例图 Sample 2</div>
+            </div>
+          </div>
+          <div class="example-row">
+            <div class="example-img">
+              <img src="images/example_booth_3.png" alt="示例图3" onclick="previewExample(this.src)">
+              <div class="caption">示例图 Sample 3</div>
+            </div>
+            <div class="example-img">
+              <img src="images/example_booth_4.png" alt="示例图4" onclick="previewExample(this.src)">
+              <div class="caption">示例图 Sample 4</div>
+            </div>
+          </div>
+          <div class="upload-area" onclick="document.getElementById('boothPhotos').click()">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">点击上传喷房现场照片 / Tap to upload booth photos</div>
+            <div class="upload-hint">建议：大门全景、内部全景、底部格栅、立柱 / Suggest: entrance, interior, grating, pillars</div>
+            <input type="file" id="boothPhotos" accept="image/*" multiple onchange="handlePhotoUpload(this, 'booth')">
+          </div>
+          <div class="thumb-list" id="boothThumbList"></div>
+        </div>
+        
+        <!-- 控制柜安装位置 -->
+        <div class="subsection">控制柜安装位置 <span class="en">Control Cabinet Installation Location</span></div>
+        <div class="cabinet-note">
+          控制柜尺寸：2000×440×265mm <span class="en">/ Cabinet Dimensions: 2000×440×265mm</span>
+        </div>
+        <div class="example-img">
+          <img src="images/example_cabinet.png" alt="控制柜安装位置示例" onclick="previewExample(this.src)">
+          <div class="caption">控制柜安装位置示意 / Cabinet Installation Location</div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>安装电柜处宽度 <span class="en">/ Width for Cabinet Installation</span></label>
+            <input type="text" name="cabinet_install_width" placeholder="例：500mm / e.g.: 500 mm">
+            <div class="hint">墙面到喷房门铰链的距离 <span class="en">/ Wall to booth door hinge</span></div>
+          </div>
+          <div class="form-group">
+            <label>喷房小门位置 <span class="en">/ Auxiliary Door Position</span></label>
+            <input type="text" name="aux_door_position" placeholder="例：左后（站在喷房外正对大门）/ e.g.: Left Rear">
+          </div>
+        </div>
+        
+        <div class="example-img">
+          <img src="images/example_door.png" alt="小门尺寸示例" onclick="previewExample(this.src)">
+          <div class="caption">小门尺寸示意 / Auxiliary Door Dimensions</div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>门与前墙面距离 <span class="en">/ Distance from Door to Front Wall</span></label>
+            <input type="text" name="door_to_front_wall" placeholder="例：xxx mm">
+          </div>
+          <div class="form-group">
+            <label>门宽 <span class="en">/ Door Width</span></label>
+            <input type="text" name="door_width" placeholder="例：760mm / e.g.: 760 mm">
+          </div>
+        </div>
+        
+        <!-- 墙面烤灯位置 -->
+        <div class="subsection">墙面烤灯位置（选填）<span class="en">Wall-Mounted Lamp Position (Optional)</span></div>
+        <div class="radio-group">
+          <label><input type="radio" name="has_lamp" value="yes" onchange="toggleSection('lamp', true)"> 有 / Yes</label>
+          <label><input type="radio" name="has_lamp" value="no" onchange="toggleSection('lamp', false)" checked> 无 / No</label>
+        </div>
+        <div class="conditional-section" id="lampSection">
+          <div class="example-row">
+            <div class="example-img">
+              <img src="images/example_lamp_height.png" alt="烤灯高度示例" onclick="previewExample(this.src)">
+              <div class="caption">烤灯高度示意 / Lamp Height</div>
+            </div>
+            <div class="example-img">
+              <img src="images/example_lamp_height2.png" alt="烤灯高度示例2" onclick="previewExample(this.src)">
+              <div class="caption">烤灯高度示意2 / Lamp Height 2</div>
+            </div>
+          </div>
+          <div class="row-3">
+            <div class="form-group">
+              <label>烤灯下沿至格栅面高度 <span class="en">/ Lower Edge to Grating</span></label>
+              <input type="text" name="lamp_lower_height" placeholder="例：510mm / e.g.: 510 mm">
+            </div>
+            <div class="form-group">
+              <label>烤灯上沿至格栅面高度 <span class="en">/ Upper Edge to Grating</span></label>
+              <input type="text" name="lamp_upper_height" placeholder="例：1070mm / e.g.: 1070 mm">
+            </div>
+            <div class="form-group">
+              <label>烤灯宽度 <span class="en">/ Lamp Width</span></label>
+              <input type="text" name="lamp_width" placeholder="例：145mm / e.g.: 145 mm">
+            </div>
+          </div>
+          <div class="example-img">
+            <img src="images/example_lamp_spacing.png" alt="烤灯间距示例" onclick="previewExample(this.src)">
+            <div class="caption">烤灯间距示意 / Lamp Spacing</div>
+          </div>
+          <div class="row-3">
+            <div class="form-group">
+              <label>前墙面与烤灯距离 <span class="en">/ Front Wall to Lamp</span></label>
+              <input type="text" name="front_wall_to_lamp" placeholder="例：1500mm / e.g.: 1500 mm">
+            </div>
+            <div class="form-group">
+              <label>烤灯间距1 <span class="en">/ Lamp-to-Lamp Dist 1</span></label>
+              <input type="text" name="lamp_to_lamp_1" placeholder="例：200mm / e.g.: 200 mm">
+            </div>
+            <div class="form-group">
+              <label>烤灯间距2 <span class="en">/ Lamp-to-Lamp Dist 2</span></label>
+              <input type="text" name="lamp_to_lamp_2" placeholder="例：200mm / e.g.: 200 mm">
+            </div>
+          </div>
+        </div>
+        
+        <!-- 气源位置 -->
+        <div class="subsection">气源位置 <span class="en">Air Supply Source Location</span></div>
+        <div class="example-img">
+          <img src="images/example_air_supply.png" alt="气源位置示例" onclick="previewExample(this.src)">
+          <div class="caption">气源位置示意 / Air Supply Location</div>
+        </div>
+        <div class="form-group">
+          <label>气源位置描述 <span class="en">/ Air Supply Description</span></label>
+          <input type="text" name="air_supply_location" placeholder="描述气源接口位置 / Describe air supply outlet location">
+        </div>
+        <div class="form-group">
+          <label>气源点位照片 <span class="en">/ Air Supply Photos</span></label>
+          <div class="upload-area" onclick="document.getElementById('airPhotos').click()" style="padding:14px;">
+            <div class="upload-icon" style="font-size:22px;">📷</div>
+            <div class="upload-text" style="font-size:12px;">上传气源接口照片 / Upload air supply photos</div>
+            <input type="file" id="airPhotos" accept="image/*" multiple onchange="handlePhotoUpload(this, 'air')">
+          </div>
+          <div class="thumb-list" id="airThumbList"></div>
+        </div>
+        
+        <!-- 电源位置 -->
+        <div class="subsection">220V电源位置 <span class="en">220V Power Supply Location</span></div>
+        <div class="example-img">
+          <img src="images/example_power_supply.png" alt="电源位置示例" onclick="previewExample(this.src)">
+          <div class="caption">电源位置示意 / Power Supply Location</div>
+        </div>
+        <div class="form-group">
+          <label>220V电源位置描述 <span class="en">/ Power Supply Description</span></label>
+          <input type="text" name="power_supply_location" placeholder="描述电源插座位置 / Describe power outlet location">
+        </div>
+        <div class="form-group">
+          <label>电源点位照片 <span class="en">/ Power Supply Photos</span></label>
+          <div class="upload-area" onclick="document.getElementById('powerPhotos').click()" style="padding:14px;">
+            <div class="upload-icon" style="font-size:22px;">📷</div>
+            <div class="upload-text" style="font-size:12px;">上传电源插座照片 / Upload power supply photos</div>
+            <input type="file" id="powerPhotos" accept="image/*" multiple onchange="handlePhotoUpload(this, 'power')">
+          </div>
+          <div class="thumb-list" id="powerThumbList"></div>
+        </div>
+      </div>
+      
+      <!-- 二、喷房内部尺寸 -->
+      <div class="section">
+        <div class="section-title">二、喷房内部尺寸 <span class="en">II. Internal Dimensions</span></div>
+        <div class="example-img">
+          <img src="images/example_internal_cross.png" alt="内部截面尺寸示例" onclick="previewExample(this.src)">
+          <div class="caption">内部截面尺寸示意 / Cross-Section Dimensions</div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>内部高度 <span class="en">/ Interior Height</span></label>
+            <input type="text" name="interior_height" placeholder="例：3000mm / e.g.: 3000 mm">
+          </div>
+          <div class="form-group">
+            <label>灯具底部至格栅高度 <span class="en">/ Light Bottom to Grate</span></label>
+            <input type="text" name="light_to_grate_height" placeholder="例：xxx mm">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>灯具宽度 <span class="en">/ Light Width</span></label>
+            <input type="text" name="light_width" placeholder="例：300mm / e.g.: 300 mm">
+          </div>
+          <div class="form-group">
+            <label>内部宽度 <span class="en">/ Interior Width</span></label>
+            <input type="text" name="interior_width" placeholder="例：3900mm / e.g.: 3900 mm">
+          </div>
+        </div>
+        
+        <div class="example-img">
+          <img src="images/example_internal_length.png" alt="内部长度示例" onclick="previewExample(this.src)">
+          <div class="caption">内部长度示意 / Interior Length</div>
+        </div>
+        <div class="form-group">
+          <label>内部长度 <span class="en">/ Interior Length</span></label>
+          <input type="text" name="interior_length" placeholder="例：6900mm / e.g.: 6900 mm">
+        </div>
+      </div>
+      
+      <!-- 三、地坑尺寸 -->
+      <div class="section">
+        <div class="section-title">三、地坑尺寸 <span class="en">III. Pit Dimensions</span></div>
+        <div class="example-img">
+          <img src="images/example_pit_method.png" alt="地坑测量方法" onclick="previewExample(this.src)">
+          <div class="caption">测量方法：地坑底部到格栅顶部 / Method: Pit floor to top of grating</div>
+        </div>
+        
+        <div class="example-img">
+          <img src="images/example_pit_depth.png" alt="地坑深度测量点" onclick="previewExample(this.src)">
+          <div class="caption">6个深度测量点位置 / 6 Depth Measurement Points</div>
+        </div>
+        <div class="row-3">
+          <div class="form-group">
+            <label>深度点1 <span class="en">/ Depth Point 1</span></label>
+            <input type="text" name="pit_depth_1" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>深度点2 <span class="en">/ Depth Point 2</span></label>
+            <input type="text" name="pit_depth_2" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>深度点3 <span class="en">/ Depth Point 3</span></label>
+            <input type="text" name="pit_depth_3" placeholder="例：300mm">
+          </div>
+        </div>
+        <div class="row-3">
+          <div class="form-group">
+            <label>深度点4 <span class="en">/ Depth Point 4</span></label>
+            <input type="text" name="pit_depth_4" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>深度点5 <span class="en">/ Depth Point 5</span></label>
+            <input type="text" name="pit_depth_5" placeholder="例：300mm">
+          </div>
+          <div class="form-group">
+            <label>深度点6 <span class="en">/ Depth Point 6</span></label>
+            <input type="text" name="pit_depth_6" placeholder="例：300mm">
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>地坑宽度 <span class="en">/ Pit Width</span></label>
+            <input type="text" name="pit_width" placeholder="例：550mm / e.g.: 550 mm">
+          </div>
+          <div class="form-group">
+            <label>墙边筋宽度 <span class="en">/ Edge Bar Width</span></label>
+            <input type="text" name="edge_bar_width" placeholder="例：20mm / e.g.: 20 mm">
+          </div>
+        </div>
+        <div class="example-row">
+          <div class="example-img">
+            <img src="images/example_pit_width.png" alt="地坑宽度示例" onclick="previewExample(this.src)">
+            <div class="caption">地坑宽度 / Pit Width</div>
+          </div>
+          <div class="example-img">
+            <img src="images/example_edge_bar.png" alt="墙边筋宽度示例" onclick="previewExample(this.src)">
+            <div class="caption">墙边筋宽度 / Edge Bar Width</div>
+          </div>
+        </div>
+        
+        <!-- 水泥墩 -->
+        <div class="radio-group">
+          <label><input type="radio" name="has_pier" value="yes" onchange="toggleSection('pier', true)"> 有水泥墩 / Has Concrete Pier</label>
+          <label><input type="radio" name="has_pier" value="no" onchange="toggleSection('pier', false)" checked> 无 / None</label>
+        </div>
+        <div class="conditional-section" id="pierSection">
+          <div class="example-img">
+            <img src="images/example_concrete_pier.png" alt="水泥墩示例" onclick="previewExample(this.src)">
+            <div class="caption">水泥墩尺寸示意 / Concrete Pier Dimensions</div>
+          </div>
+          <div class="row">
+            <div class="form-group">
+              <label>水泥墩长度 <span class="en">/ Concrete Pier Length</span></label>
+              <input type="text" name="concrete_pier_length" placeholder="例：400mm / e.g.: 400 mm">
+            </div>
+            <div class="form-group">
+              <label>水泥墩高度 <span class="en">/ Concrete Pier Height</span></label>
+              <input type="text" name="concrete_pier_height" placeholder="例：250mm / e.g.: 250 mm">
+            </div>
+          </div>
+        </div>
+        
+        <!-- 斜坡 -->
+        <div class="radio-group">
+          <label><input type="radio" name="has_ramp" value="yes" onchange="toggleSection('ramp', true)"> 有斜坡 / Has Ramp</label>
+          <label><input type="radio" name="has_ramp" value="no" onchange="toggleSection('ramp', false)" checked> 无 / None</label>
+        </div>
+        <div class="conditional-section" id="rampSection">
+          <div class="example-img">
+            <img src="images/example_ramp.png" alt="斜坡示例" onclick="previewExample(this.src)">
+            <div class="caption">斜坡尺寸示意 / Ramp Dimensions</div>
+          </div>
+          <div class="row">
+            <div class="form-group">
+              <label>平面斜坡长度 <span class="en">/ Horizontal Ramp Length</span></label>
+              <input type="text" name="ramp_length" placeholder="例：1000mm / e.g.: 1000 mm">
+            </div>
+            <div class="form-group">
+              <label>斜坡高度 <span class="en">/ Ramp Height</span></label>
+              <input type="text" name="ramp_height" placeholder="例：100mm / e.g.: 100 mm">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 备注 -->
+      <div class="form-group">
+        <label>备注 <span class="en">/ Remarks</span></label>
+        <textarea name="remarks" placeholder="其他需要说明的事项 / Other notes"></textarea>
+      </div>
+      
+      <button type="submit" id="submitBtn">提交勘测记录 / Submit Survey</button>
+    </form>
+  </div>
+  
+  <!-- 图片预览模态框 -->
+  <div class="img-preview-modal" id="imgPreviewModal" onclick="closeImgPreview()">
+    <button class="close-btn" onclick="closeImgPreview()">×</button>
+    <img id="previewImg" src="" alt="预览 / Preview">
+  </div>
+  
+  <script>
+    const form = document.getElementById('surveyForm');
+    const toast = document.getElementById('toast');
+    const submitBtn = document.getElementById('submitBtn');
+    const photoStore = { booth: [], air: [], power: [] };
+    
+    function showToast(message, type = 'success') {
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+    
+    function previewExample(src) {
+      document.getElementById('previewImg').src = src;
+      document.getElementById('imgPreviewModal').classList.add('active');
+    }
+    
+    function compressImage(file, maxSize = 1600, quality = 0.85) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > maxSize || height > maxSize) {
+              if (width > height) {
+                height = Math.round(height * maxSize / width);
+                width = maxSize;
+              } else {
+                width = Math.round(width * maxSize / height);
+                height = maxSize;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    async function handlePhotoUpload(input, category) {
+      const files = Array.from(input.files);
+      if (files.length === 0) return;
+      const listId = category + 'ThumbList';
+      const list = document.getElementById(listId);
+      for (const file of files) {
+        try {
+          const dataUrl = await compressImage(file);
+          const idx = photoStore[category].length;
+          photoStore[category].push(dataUrl);
+          const div = document.createElement('div');
+          div.className = 'thumb-item';
+          div.innerHTML = '<img src="' + dataUrl + '" onclick="previewImg(\'' + category + '\', ' + idx + ')" alt="照片"><button class="thumb-del" onclick="removePhoto(\'' + category + '\', ' + idx + ')">×</button>';
+          list.appendChild(div);
+        } catch (err) {
+          showToast('图片处理失败 / Image processing failed', 'error');
+        }
+      }
+      input.value = '';
+    }
+    
+    function removePhoto(category, idx) {
+      photoStore[category].splice(idx, 1);
+      renderThumbList(category);
+    }
+    
+    function renderThumbList(category) {
+      const list = document.getElementById(category + 'ThumbList');
+      list.innerHTML = '';
+      photoStore[category].forEach((dataUrl, i) => {
+        const div = document.createElement('div');
+        div.className = 'thumb-item';
+        div.innerHTML = '<img src="' + dataUrl + '" onclick="previewImg(\'' + category + '\', ' + i + ')" alt="照片"><button class="thumb-del" onclick="removePhoto(\'' + category + '\', ' + i + ')">×</button>';
+        list.appendChild(div);
+      });
+    }
+    
+    function previewImg(category, idx) {
+      document.getElementById('previewImg').src = photoStore[category][idx];
+      document.getElementById('imgPreviewModal').classList.add('active');
+    }
+    
+    function closeImgPreview() {
+      document.getElementById('imgPreviewModal').classList.remove('active');
+    }
+    
+    function toggleSection(name, show) {
+      const section = document.getElementById(name + 'Section');
+      if (section) {
+        if (show) {
+          section.classList.add('visible');
+        } else {
+          section.classList.remove('visible');
+          section.querySelectorAll('input, textarea').forEach(el => { el.value = ''; });
+        }
+      }
+    }
+    
+    async function checkInviteCode() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (!code) {
+        document.getElementById('invalidPage').style.display = 'block';
+        return;
+      }
+      try {
+        const res = await fetch('/api/verify-code?code=' + encodeURIComponent(code));
+        const data = await res.json();
+        if (data.valid) {
+          document.getElementById('formContainer').style.display = 'block';
+          document.getElementById('inviteCode').value = data.code;
+          document.getElementById('customerBanner').innerHTML = '客户 / Customer：<strong>' + data.customer_name + '</strong>';
+          document.title = '现场喷房勘测 - ' + data.customer_name;
+        } else {
+          document.getElementById('invalidPage').style.display = 'block';
+        }
+      } catch (err) {
+        document.getElementById('invalidPage').style.display = 'block';
+      }
+    }
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交中... / Submitting...';
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      // 保留分类信息存储照片
+      const allPhotos = [
+        ...photoStore.booth.map(d => ({ category: 'booth', data: d })),
+        ...photoStore.air.map(d => ({ category: 'air', data: d })),
+        ...photoStore.power.map(d => ({ category: 'power', data: d }))
+      ];
+      data.photos = allPhotos;
+      
+      if (photoStore.booth.length === 0) {
+        showToast('请至少上传一张喷房现场照片 / Please upload at least one booth photo', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交勘测记录 / Submit Survey';
+        return;
+      }
+      try {
+        const res = await fetch('/api/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (res.ok) {
+          showToast('提交成功！/ Submitted successfully!', 'success');
+          form.reset();
+          photoStore.booth = []; photoStore.air = []; photoStore.power = [];
+          renderThumbList('booth'); renderThumbList('air'); renderThumbList('power');
+          document.getElementById('inviteCode').value = data.invite_code;
+          window.scrollTo(0, 0);
+        } else {
+          showToast(result.error || '提交失败 / Submit failed', 'error');
+        }
+      } catch (err) {
+        showToast('网络错误，请重试 / Network error, please retry', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交勘测记录 / Submit Survey';
+      }
+    });
+    
+    checkInviteCode();
+  </script>
+</body>
+</html>
