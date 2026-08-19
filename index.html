@@ -386,6 +386,35 @@
       margin: 0 auto;
       background: #fafafa;
     }
+    /* 提交成功页面 */
+    .success-page { display: none; text-align: center; padding: 40px 20px; }
+    .success-page.active { display: block; }
+    .success-icon { font-size: 64px; margin-bottom: 16px; }
+    .success-page h2 { color: #2e7d32; font-size: 24px; margin-bottom: 8px; }
+    .success-page .success-sub { color: #558b2f; font-size: 14px; margin-bottom: 24px; }
+    .success-page .success-info {
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+      font-size: 13px;
+      color: #555;
+      line-height: 1.8;
+    }
+    .success-page .success-info strong { color: #333; }
+    .btn-new-survey {
+      width: 100%;
+      padding: 14px;
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-new-survey:hover { background: #1557b0; }
   </style>
 </head>
 <body>
@@ -921,6 +950,14 @@
     <button class="btn-back" onclick="backToForm()">← 返回修改 / Back to Edit</button>
     <button class="btn-confirm" id="confirmBtn" onclick="confirmSubmit()">确认提交 / Confirm Submit</button>
   </div>
+  <!-- 提交成功页面 -->
+  <div class="container success-page" id="successPage">
+    <div class="success-icon">✅</div>
+    <h2>提交成功 / Submitted Successfully</h2>
+    <p class="success-sub">您的勘测信息已成功提交，我们将尽快与您联系 / Your survey has been submitted, we will contact you soon.</p>
+    <div class="success-info" id="successInfo"></div>
+    <button class="btn-new-survey" onclick="startNewSurvey()">填写新的勘测表 / Start New Survey</button>
+  </div>
   
   <!-- 图片预览模态框 -->
   <div class="img-preview-modal" id="imgPreviewModal" onclick="closeImgPreview()">
@@ -1253,6 +1290,8 @@
           html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
         });
       }
+      // 地坑深度测量点对照图
+      html += '<div class="preview-item full"><div class="example-img" style="margin-top:12px;"><img src="images/example_pit_depth.png" alt="地坑深度测量点 / Pit Depth Measurement Points" style="max-height:260px;"><div class="caption">地坑6个深度测量点位置 / 6 Pit Depth Measurement Points</div></div></div>';
       html += '</div></div>';
       
       // 备注
@@ -1270,6 +1309,13 @@
       window.scrollTo(0, 0);
     }
     
+    // 重新填写勘测表
+    function startNewSurvey() {
+      document.getElementById('successPage').classList.remove('active');
+      document.getElementById('formContainer').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+    
     // 确认提交
     async function confirmSubmit() {
       confirmBtn.disabled = true;
@@ -1283,15 +1329,24 @@
         });
         const result = await res.json();
         if (res.ok) {
-          showToast('提交成功！/ Submitted successfully!', 'success');
+          // 填充成功页面信息
+          const now = new Date();
+          const timeStr = now.toLocaleString('zh-CN');
+          document.getElementById('successInfo').innerHTML =
+            '<div><strong>勘测名称 / Survey Name：</strong>' + (data.survey_name || '-') + '</div>' +
+            '<div><strong>客户 / Customer：</strong>' + (data.customer_name || '-') + '</div>' +
+            '<div><strong>提交时间 / Submitted At：</strong>' + timeStr + '</div>' +
+            '<div style="margin-top:8px;color:#888;font-size:12px;">记录编号 / Record ID：' + (result.id || '-') + '</div>';
+          // 重置表单数据
           form.reset();
           photoStore.booth = []; photoStore.air = []; photoStore.power = [];
           renderThumbList('booth'); renderThumbList('air'); renderThumbList('power');
           document.getElementById('inviteCode').value = data.invite_code;
-          document.getElementById('previewPage').classList.remove('active');
-          document.getElementById('formContainer').style.display = 'block';
-          // 重置条件区域
           ['elevator','lamp','pier','ramp'].forEach(s => toggleSection(s, false));
+          // 显示成功页面
+          document.getElementById('previewPage').classList.remove('active');
+          document.getElementById('formContainer').style.display = 'none';
+          document.getElementById('successPage').classList.add('active');
           window.scrollTo(0, 0);
         } else {
           showToast(result.error || '提交失败 / Submit failed', 'error');
