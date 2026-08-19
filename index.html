@@ -376,11 +376,15 @@
     }
     .preview-photo-grid img {
       width: 100%;
-      height: 120px;
-      object-fit: cover;
+      height: auto;
+      max-height: 180px;
+      object-fit: contain;
       border-radius: 6px;
       border: 1px solid #ddd;
       cursor: pointer;
+      display: block;
+      margin: 0 auto;
+      background: #fafafa;
     }
   </style>
 </head>
@@ -1097,24 +1101,55 @@
       return data;
     }
     
-    // 字段标签映射（预览用）
+    // 字段标签映射（预览用，双语）
     const PREVIEW_LABELS = {
-      survey_name: '勘测名称', location: '现场地址', main_vehicle_types: '主要喷涂车型',
-      heating_method: '加热方式', max_air_pressure: '最高气压', max_temperature: '最高温度',
-      floor_thickness: '楼板厚度', booth_level: '喷房楼层', elevator_dimensions: '电梯尺寸',
-      underground_utilities: '地下管线情况', cabinet_install_width: '电柜安装宽度',
-      aux_door_position: '小门位置', door_to_front_wall: '门到前墙距离', door_width: '门宽',
-      lamp_lower_height: '烤灯下沿高度', lamp_upper_height: '烤灯上沿高度', lamp_width: '烤灯宽度',
-      front_wall_to_lamp: '前墙到烤灯距离', lamp_to_lamp_1: '烤灯间距1', lamp_to_lamp_2: '烤灯间距2',
-      air_supply_location: '气源位置', power_supply_location: '220V电源位置',
-      interior_height: '内部高度', light_to_grate_height: '灯具到格栅高度', light_width: '灯具宽度',
-      interior_width: '内部宽度', interior_length: '内部长度',
-      pit_depth_1: '地坑深度1', pit_depth_2: '地坑深度2', pit_depth_3: '地坑深度3',
-      pit_depth_4: '地坑深度4', pit_depth_5: '地坑深度5', pit_depth_6: '地坑深度6',
-      pit_width: '地坑宽度', edge_bar_width: '墙边筋宽度',
-      concrete_pier_length: '水泥墩长度', concrete_pier_height: '水泥墩高度',
-      ramp_length: '斜坡长度', ramp_height: '斜坡高度', remarks: '备注'
+      survey_name: { zh: '勘测名称', en: 'Survey Name' },
+      location: { zh: '现场地址', en: 'Location' },
+      main_vehicle_types: { zh: '主要喷涂车型', en: 'Main Vehicle Types' },
+      heating_method: { zh: '加热方式', en: 'Heating Method' },
+      max_air_pressure: { zh: '最高气压', en: 'Max Air Pressure' },
+      max_temperature: { zh: '最高温度', en: 'Max Temperature' },
+      floor_thickness: { zh: '楼板厚度', en: 'Floor Slab Thickness' },
+      booth_level: { zh: '喷房楼层', en: 'Booth Level' },
+      elevator_dimensions: { zh: '电梯尺寸', en: 'Elevator Dimensions' },
+      underground_utilities: { zh: '地下管线情况', en: 'Underground Utilities' },
+      cabinet_install_width: { zh: '电柜安装宽度', en: 'Cabinet Install Width' },
+      aux_door_position: { zh: '小门位置', en: 'Auxiliary Door Position' },
+      door_to_front_wall: { zh: '门到前墙距离', en: 'Door to Front Wall' },
+      door_width: { zh: '门宽', en: 'Door Width' },
+      lamp_lower_height: { zh: '烤灯下沿高度', en: 'Lamp Lower Edge Ht' },
+      lamp_upper_height: { zh: '烤灯上沿高度', en: 'Lamp Upper Edge Ht' },
+      lamp_width: { zh: '烤灯宽度', en: 'Lamp Width' },
+      front_wall_to_lamp: { zh: '前墙到烤灯距离', en: 'Front Wall to Lamp' },
+      lamp_to_lamp_1: { zh: '烤灯间距1', en: 'Lamp Spacing 1' },
+      lamp_to_lamp_2: { zh: '烤灯间距2', en: 'Lamp Spacing 2' },
+      air_supply_location: { zh: '气源位置', en: 'Air Supply Location' },
+      power_supply_location: { zh: '220V电源位置', en: '220V Power Location' },
+      interior_height: { zh: '内部高度', en: 'Interior Height' },
+      light_to_grate_height: { zh: '灯具到格栅高度', en: 'Light to Grating Ht' },
+      light_width: { zh: '灯具宽度', en: 'Light Fixture Width' },
+      interior_width: { zh: '内部宽度', en: 'Interior Width' },
+      interior_length: { zh: '内部长度', en: 'Interior Length' },
+      pit_depth_1: { zh: '地坑深度1', en: 'Pit Depth 1' },
+      pit_depth_2: { zh: '地坑深度2', en: 'Pit Depth 2' },
+      pit_depth_3: { zh: '地坑深度3', en: 'Pit Depth 3' },
+      pit_depth_4: { zh: '地坑深度4', en: 'Pit Depth 4' },
+      pit_depth_5: { zh: '地坑深度5', en: 'Pit Depth 5' },
+      pit_depth_6: { zh: '地坑深度6', en: 'Pit Depth 6' },
+      pit_width: { zh: '地坑宽度', en: 'Pit Width' },
+      edge_bar_width: { zh: '墙边筋宽度', en: 'Edge Bar Width' },
+      concrete_pier_length: { zh: '水泥墩长度', en: 'Concrete Pier Length' },
+      concrete_pier_height: { zh: '水泥墩高度', en: 'Concrete Pier Height' },
+      ramp_length: { zh: '斜坡长度', en: 'Ramp Length' },
+      ramp_height: { zh: '斜坡高度', en: 'Ramp Height' },
+      remarks: { zh: '备注', en: 'Remarks' }
     };
+    // 获取双语标签文本
+    function lbl(key) {
+      const l = PREVIEW_LABELS[key];
+      if (!l) return key;
+      return l.zh + ' / ' + l.en;
+    }
     // 需要加mm单位的字段
     const MM_FIELDS = new Set([
       'floor_thickness','cabinet_install_width','door_to_front_wall','door_width',
@@ -1137,92 +1172,92 @@
       let html = '';
       
       // 基本信息
-      html += '<div class="preview-section"><h3>一、现场概述</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>一、现场概述 / I. Site Overview</h3><div class="preview-grid">';
       const basicFields = ['survey_name','location','main_vehicle_types','heating_method','max_air_pressure','max_temperature','floor_thickness','booth_level'];
       basicFields.forEach(f => {
         const full = (f === 'location') ? ' full' : '';
-        html += '<div class="preview-item' + full + '"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+        html += '<div class="preview-item' + full + '"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
       });
       // 电梯
-      html += '<div class="preview-item full"><span class="pk">货梯：</span><span class="pv">' + (data.has_elevator === 'yes' ? '有' : '无') + '</span></div>';
+      html += '<div class="preview-item full"><span class="pk">货梯 / Freight Elevator：</span><span class="pv">' + (data.has_elevator === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
       if (data.has_elevator === 'yes' && data.elevator_dimensions) {
-        html += '<div class="preview-item full"><span class="pk">电梯尺寸：</span><span class="pv">' + data.elevator_dimensions + ' mm</span></div>';
+        html += '<div class="preview-item full"><span class="pk">' + lbl('elevator_dimensions') + '：</span><span class="pv">' + data.elevator_dimensions + ' mm</span></div>';
       }
-      html += '<div class="preview-item full"><span class="pk">地下管线情况：</span><span class="pv">' + formatValue('underground_utilities', data.underground_utilities) + '</span></div>';
+      html += '<div class="preview-item full"><span class="pk">' + lbl('underground_utilities') + '：</span><span class="pv">' + formatValue('underground_utilities', data.underground_utilities) + '</span></div>';
       // 喷房照片
       const boothPhotos = (data.photos||[]).filter(p=>p.category==='booth');
       if (boothPhotos.length > 0) {
-        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">喷房现场照片（' + boothPhotos.length + '张）</div><div class="preview-photo-grid">';
-        boothPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="喷房照片' + (i+1) + '">'; });
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">喷房内部及四周照片 / Booth Interior & Surroundings（' + boothPhotos.length + '张）</div><div class="preview-photo-grid">';
+        boothPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="喷房照片 ' + (i+1) + '">'; });
         html += '</div></div></div>';
       }
       html += '</div></div>';
       
       // 控制柜与小门
-      html += '<div class="preview-section"><h3>控制柜与小门</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>控制柜与小门 / Control Cabinet &amp; Aux Door</h3><div class="preview-grid">';
       ['cabinet_install_width','aux_door_position','door_to_front_wall','door_width'].forEach(f => {
-        html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+        html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
       });
       html += '</div></div>';
       
       // 墙面烤灯（仅在有时显示）
       if (data.has_lamp === 'yes') {
-        html += '<div class="preview-section"><h3>墙面烤灯</h3><div class="preview-grid">';
+        html += '<div class="preview-section"><h3>墙面烤灯 / Wall-Mounted Lamps</h3><div class="preview-grid">';
         ['lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp','lamp_to_lamp_1','lamp_to_lamp_2'].forEach(f => {
-          html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+          html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
         });
         html += '</div></div>';
       }
       
       // 气源与电源
-      html += '<div class="preview-section"><h3>气源与电源</h3><div class="preview-grid">';
-      html += '<div class="preview-item full"><span class="pk">气源位置：</span><span class="pv">' + formatValue('air_supply_location', data.air_supply_location) + '</span></div>';
+      html += '<div class="preview-section"><h3>气源与电源 / Air Supply &amp; Power</h3><div class="preview-grid">';
+      html += '<div class="preview-item full"><span class="pk">' + lbl('air_supply_location') + '：</span><span class="pv">' + formatValue('air_supply_location', data.air_supply_location) + '</span></div>';
       const airPhotos = (data.photos||[]).filter(p=>p.category==='air');
       if (airPhotos.length > 0) {
-        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">气源点位照片（' + airPhotos.length + '张）</div><div class="preview-photo-grid">';
-        airPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="气源照片' + (i+1) + '">'; });
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">气源点位照片 / Air Supply Photos（' + airPhotos.length + '张）</div><div class="preview-photo-grid">';
+        airPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="气源照片 ' + (i+1) + '">'; });
         html += '</div></div></div>';
       }
-      html += '<div class="preview-item full"><span class="pk">220V电源位置：</span><span class="pv">' + formatValue('power_supply_location', data.power_supply_location) + '</span></div>';
+      html += '<div class="preview-item full"><span class="pk">' + lbl('power_supply_location') + '：</span><span class="pv">' + formatValue('power_supply_location', data.power_supply_location) + '</span></div>';
       const powerPhotos = (data.photos||[]).filter(p=>p.category==='power');
       if (powerPhotos.length > 0) {
-        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">电源点位照片（' + powerPhotos.length + '张）</div><div class="preview-photo-grid">';
-        powerPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="电源照片' + (i+1) + '">'; });
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">电源点位照片 / Power Supply Photos（' + powerPhotos.length + '张）</div><div class="preview-photo-grid">';
+        powerPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="电源照片 ' + (i+1) + '">'; });
         html += '</div></div></div>';
       }
       html += '</div></div>';
       
       // 内部尺寸
-      html += '<div class="preview-section"><h3>喷房内部尺寸</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>喷房内部尺寸 / Internal Dimensions</h3><div class="preview-grid">';
       ['interior_height','light_to_grate_height','light_width','interior_width','interior_length'].forEach(f => {
-        html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+        html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
       });
       html += '</div></div>';
       
       // 地坑尺寸
-      html += '<div class="preview-section"><h3>地坑尺寸</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>地坑尺寸 / Pit Dimensions</h3><div class="preview-grid">';
       ['pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6','pit_width','edge_bar_width'].forEach(f => {
-        html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+        html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
       });
       // 水泥墩
-      html += '<div class="preview-item full"><span class="pk">水泥墩：</span><span class="pv">' + (data.has_pier === 'yes' ? '有' : '无') + '</span></div>';
+      html += '<div class="preview-item full"><span class="pk">水泥墩 / Concrete Pier：</span><span class="pv">' + (data.has_pier === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
       if (data.has_pier === 'yes') {
         ['concrete_pier_length','concrete_pier_height'].forEach(f => {
-          html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+          html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
         });
       }
       // 斜坡
-      html += '<div class="preview-item full"><span class="pk">斜坡：</span><span class="pv">' + (data.has_ramp === 'yes' ? '有' : '无') + '</span></div>';
+      html += '<div class="preview-item full"><span class="pk">斜坡 / Ramp：</span><span class="pv">' + (data.has_ramp === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
       if (data.has_ramp === 'yes') {
         ['ramp_length','ramp_height'].forEach(f => {
-          html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+          html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
         });
       }
       html += '</div></div>';
       
       // 备注
-      html += '<div class="preview-section"><h3>备注</h3><div class="preview-grid">';
-      html += '<div class="preview-item full"><span class="pv">' + (data.remarks || '无') + '</span></div>';
+      html += '<div class="preview-section"><h3>备注 / Remarks</h3><div class="preview-grid">';
+      html += '<div class="preview-item full"><span class="pv">' + (data.remarks || '无 / None') + '</span></div>';
       html += '</div></div>';
       
       document.getElementById('previewContent').innerHTML = html;
