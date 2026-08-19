@@ -74,6 +74,10 @@ async function initDB() {
         ramp_height VARCHAR(50),
         remarks TEXT,
         photos TEXT,
+        has_elevator VARCHAR(10),
+        has_lamp VARCHAR(10),
+        has_pier VARCHAR(10),
+        has_ramp VARCHAR(10),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -85,6 +89,10 @@ async function initDB() {
       await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS photos TEXT');
       await pool.query('ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS used BOOLEAN DEFAULT FALSE');
       await pool.query('ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMP');
+      await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS has_elevator VARCHAR(10)');
+      await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS has_lamp VARCHAR(10)');
+      await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS has_pier VARCHAR(10)');
+      await pool.query('ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS has_ramp VARCHAR(10)');
     } catch (e) { /* 已存在则忽略 */ }
 
     console.log('数据库表初始化完成');
@@ -108,7 +116,8 @@ const FIELDS = [
   'pit_width', 'edge_bar_width',
   'concrete_pier_length', 'concrete_pier_height',
   'ramp_length', 'ramp_height',
-  'remarks', 'photos'
+  'remarks', 'photos',
+  'has_elevator', 'has_lamp', 'has_pier', 'has_ramp'
 ];
 
 // ========== 勘测记录相关 ==========

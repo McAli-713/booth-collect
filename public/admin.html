@@ -40,7 +40,6 @@
     .btn-warning { background: #f57f17; color: #fff; }
     .btn-sm { padding: 4px 9px; font-size: 12px; }
     .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
-
     /* 标签页 */
     .tabs {
       display: flex;
@@ -63,7 +62,6 @@
     }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-
     .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -112,7 +110,6 @@
     .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
     .pagination span { font-size: 13px; color: #666; }
     .empty { text-align: center; padding: 40px; color: #999; }
-
     /* 登录页 */
     .login-box {
       max-width: 380px;
@@ -142,7 +139,7 @@
       cursor: pointer;
     }
     .error-msg { color: #e53935; font-size: 13px; margin-bottom: 12px; text-align: center; }
-
+    .session-tip { font-size: 11px; color: #999; text-align: center; margin-top: 12px; }
     /* 创建邀请码表单 */
     .create-form {
       background: #fff;
@@ -170,7 +167,6 @@
       border-radius: 6px;
       font-size: 13px;
     }
-
     /* 状态标签 */
     .badge {
       display: inline-block;
@@ -188,7 +184,6 @@
       color: #1a73e8;
       letter-spacing: 1px;
     }
-
     /* 弹窗 */
     .modal-overlay {
       display: none;
@@ -206,7 +201,7 @@
       background: #fff;
       border-radius: 12px;
       width: 100%;
-      max-width: 700px;
+      max-width: 800px;
       padding: 24px;
       max-height: 90vh;
       overflow-y: auto;
@@ -245,7 +240,6 @@
       color: #999;
       padding: 0;
     }
-
     /* 二维码弹窗 */
     .qr-modal { max-width: 460px; text-align: center; }
     .qr-code {
@@ -302,38 +296,38 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    /* 照片展示 */
+    /* 照片展示 - 增大尺寸 */
     .detail-photos { margin-top: 16px; }
     .detail-photos h3 { margin-bottom: 10px; }
     .photo-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
     }
     .photo-grid img {
       width: 100%;
-      height: 100px;
+      height: 180px;
       object-fit: cover;
       border-radius: 6px;
       cursor: pointer;
       border: 1px solid #ddd;
       transition: transform 0.2s;
     }
-    .photo-grid img:hover { transform: scale(1.05); }
+    .photo-grid img:hover { transform: scale(1.03); }
     /* 内联照片（按测量项分类展示） */
     .inline-photos {
       margin-top: 8px;
-      padding: 10px;
+      padding: 12px;
       background: #f8f9fa;
       border-radius: 6px;
     }
     .inline-photos .photo-label {
       font-size: 12px;
       color: #666;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       font-weight: 600;
     }
-    .inline-photos .photo-grid img { height: 80px; }
+    .inline-photos .photo-grid img { height: 160px; }
     .detail-section-full { grid-column: 1 / -1; }
     /* PDF导出按钮 */
     .pdf-export-btn {
@@ -380,9 +374,9 @@
       <input type="text" id="loginUser" placeholder="用户名">
       <input type="password" id="loginPass" placeholder="密码">
       <button onclick="doLogin()">登录</button>
+      <div class="session-tip">登录后30分钟无操作将自动登出，关闭页面也需重新登录</div>
     </div>
   </div>
-
   <div id="mainView" style="display:none;">
     <div class="header">
       <h1>喷房勘测管理后台</h1>
@@ -397,7 +391,6 @@
         <div class="tab active" onclick="switchTab('records')">勘测记录</div>
         <div class="tab" onclick="switchTab('invites')">邀请码管理</div>
       </div>
-
       <!-- 勘测记录 -->
       <div class="tab-content active" id="tab-records">
         <div class="stats">
@@ -437,7 +430,6 @@
           <div class="pagination" id="pagination"></div>
         </div>
       </div>
-
       <!-- 邀请码管理 -->
       <div class="tab-content" id="tab-invites">
         <div class="create-form">
@@ -471,7 +463,6 @@
       </div>
     </div>
   </div>
-
   <!-- 详情弹窗 -->
   <div class="modal-overlay" id="detailModal">
     <div class="modal" id="detailModalContent">
@@ -481,7 +472,6 @@
       <div id="detailContent"></div>
     </div>
   </div>
-
   <!-- 二维码弹窗 -->
   <div class="modal-overlay" id="qrModal">
     <div class="modal qr-modal">
@@ -499,19 +489,20 @@
       </div>
     </div>
   </div>
-
   <!-- 照片预览模态框 -->
   <div class="photo-preview-overlay" id="photoPreview" onclick="closePhotoPreview()">
     <button class="close-btn" onclick="closePhotoPreview()">×</button>
     <img id="photoPreviewImg" src="" alt="照片预览">
   </div>
-
   <script>
     let currentPage = 1;
     const pageSize = 20;
     let authHeader = null;
     let currentQRUrl = '';
     let inviteCodeList = [];
+    // 会话超时：30分钟
+    const SESSION_TIMEOUT = 30 * 60 * 1000;
+    let sessionTimer = null;
 
     const FIELD_LABELS = {
       customer_name: '客户名称', invite_code: '邀请码',
@@ -531,35 +522,65 @@
       concrete_pier_length: '水泥墩长度', concrete_pier_height: '水泥墩高度',
       ramp_length: '斜坡长度', ramp_height: '斜坡高度', remarks: '备注'
     };
-
-    const SECTIONS = [
-      { title: '基本信息', fields: ['customer_name','invite_code','survey_name','location','main_vehicle_types','heating_method','max_air_pressure','max_temperature','floor_thickness','booth_level','elevator_dimensions','underground_utilities'] },
-      { title: '控制柜与小门', fields: ['cabinet_install_width','aux_door_position','door_to_front_wall','door_width'] },
-      { title: '墙面烤灯', fields: ['lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp','lamp_to_lamp_1','lamp_to_lamp_2'] },
-      { title: '气源与电源', fields: ['air_supply_location','power_supply_location'] },
-      { title: '喷房内部尺寸', fields: ['interior_height','light_to_grate_height','light_width','interior_width','interior_length'] },
-      { title: '地坑尺寸', fields: ['pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6','pit_width','edge_bar_width','concrete_pier_length','concrete_pier_height','ramp_length','ramp_height'] },
-      { title: '其他', fields: ['remarks'] }
-    ];
-
-    function checkAuth() {
-      const saved = localStorage.getItem('spray_admin_auth');
-      if (saved) { authHeader = saved; showMain(); }
-      else { showLogin(); }
+    // 需要加mm单位的字段
+    const MM_FIELDS = new Set([
+      'floor_thickness','cabinet_install_width','door_to_front_wall','door_width',
+      'lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp',
+      'lamp_to_lamp_1','lamp_to_lamp_2','interior_height','light_to_grate_height',
+      'light_width','interior_width','interior_length',
+      'pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6',
+      'pit_width','edge_bar_width','concrete_pier_length','concrete_pier_height',
+      'ramp_length','ramp_height'
+    ]);
+    function formatVal(key, val) {
+      if (!val) return '-';
+      if (MM_FIELDS.has(key)) return val + ' mm';
+      return val;
     }
 
+    // ========== 会话管理 ==========
+    function updateActivity() {
+      sessionStorage.setItem('spray_admin_last_activity', Date.now().toString());
+    }
+    function startSessionTimer() {
+      if (sessionTimer) clearInterval(sessionTimer);
+      sessionTimer = setInterval(() => {
+        const last = parseInt(sessionStorage.getItem('spray_admin_last_activity') || '0');
+        if (last && Date.now() - last > SESSION_TIMEOUT) {
+          logout(true);
+        }
+      }, 30000); // 每30秒检查一次
+    }
+    // 监听用户活动
+    ['click','mousemove','keydown','scroll','touchstart'].forEach(evt => {
+      document.addEventListener(evt, () => {
+        if (authHeader) updateActivity();
+      }, { passive: true });
+    });
+
+    function checkAuth() {
+      // 使用 sessionStorage，关闭页面即清除
+      const saved = sessionStorage.getItem('spray_admin_auth');
+      const last = parseInt(sessionStorage.getItem('spray_admin_last_activity') || '0');
+      if (saved && last && Date.now() - last <= SESSION_TIMEOUT) {
+        authHeader = saved;
+        updateActivity();
+        startSessionTimer();
+        showMain();
+      } else {
+        logout(false);
+      }
+    }
     function showLogin() {
       document.getElementById('loginView').style.display = 'block';
       document.getElementById('mainView').style.display = 'none';
     }
-
     function showMain() {
       document.getElementById('loginView').style.display = 'none';
       document.getElementById('mainView').style.display = 'block';
       loadRecords();
       loadInviteCodes();
     }
-
     async function doLogin() {
       const user = document.getElementById('loginUser').value;
       const pass = document.getElementById('loginPass').value;
@@ -569,7 +590,9 @@
           headers: { 'Authorization': authHeader }
         });
         if (res.ok) {
-          localStorage.setItem('spray_admin_auth', authHeader);
+          sessionStorage.setItem('spray_admin_auth', authHeader);
+          updateActivity();
+          startSessionTimer();
           showMain();
         } else {
           let errMsg = '登录失败';
@@ -584,13 +607,16 @@
         document.getElementById('loginError').textContent = '网络错误：' + err.message;
       }
     }
-
-    function logout() {
-      localStorage.removeItem('spray_admin_auth');
+    function logout(showTip) {
+      sessionStorage.removeItem('spray_admin_auth');
+      sessionStorage.removeItem('spray_admin_last_activity');
+      if (sessionTimer) { clearInterval(sessionTimer); sessionTimer = null; }
       authHeader = null;
       showLogin();
+      if (showTip) {
+        document.getElementById('loginError').textContent = '会话已超时，请重新登录';
+      }
     }
-
     // 标签页切换
     function switchTab(tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -598,7 +624,6 @@
       event.target.classList.add('active');
       document.getElementById('tab-' + tab).classList.add('active');
     }
-
     // ========== 勘测记录 ==========
     async function loadRecords() {
       try {
@@ -614,7 +639,6 @@
         console.error(err);
       }
     }
-
     function renderTable(records) {
       const tbody = document.getElementById('tableBody');
       if (records.length === 0) {
@@ -637,7 +661,6 @@
         </tr>
       `).join('');
     }
-
     function renderStats(records, total) {
       document.getElementById('statTotal').textContent = total;
       const now = new Date();
@@ -650,7 +673,6 @@
         ? new Date(records[0].created_at).toLocaleDateString('zh-CN')
         : '-';
     }
-
     function renderPagination(total) {
       const totalPages = Math.ceil(total / pageSize);
       const pag = document.getElementById('pagination');
@@ -660,12 +682,10 @@
         <button onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
       `;
     }
-
     function goPage(page) {
       currentPage = page;
       loadRecords();
     }
-
     // 按分类提取照片
     function getPhotosByCategory(photos, category) {
       if (!photos || !Array.isArray(photos)) return [];
@@ -695,24 +715,86 @@
         const airPhotos = getPhotosByCategory(data.photos, 'air');
         const powerPhotos = getPhotosByCategory(data.photos, 'power');
         let html = '';
-        SECTIONS.forEach(function(section) {
-          html += '<div class="detail-section"><h3>' + section.title + '</h3><div class="detail-grid">';
-          section.fields.forEach(function(f) {
-            const val = data[f];
-            html += '<div class="detail-item"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + (val || '-') + '</span></div>';
-            if (f === 'air_supply_location' && airPhotos.length > 0) {
-              html += '<div class="detail-item detail-section-full">' + renderPhotoGrid(airPhotos, '气源点位照片') + '</div>';
-            }
-            if (f === 'power_supply_location' && powerPhotos.length > 0) {
-              html += '<div class="detail-item detail-section-full">' + renderPhotoGrid(powerPhotos, '电源点位照片') + '</div>';
-            }
-          });
-          html += '</div>';
-          if (section.title === '基本信息' && boothPhotos.length > 0) {
-            html += renderPhotoGrid(boothPhotos, '喷房内部及四周照片');
-          }
-          html += '</div>';
+
+        // 基本信息
+        html += '<div class="detail-section"><h3>基本信息</h3><div class="detail-grid">';
+        ['customer_name','invite_code','survey_name','location','main_vehicle_types','heating_method','max_air_pressure','max_temperature','floor_thickness','booth_level'].forEach(function(f) {
+          const full = (f === 'location') ? ' detail-section-full' : '';
+          html += '<div class="detail-item' + full + '"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
         });
+        // 电梯（仅在有时显示尺寸）
+        html += '<div class="detail-item"><span class="key">货梯：</span><span class="val">' + (data.has_elevator === 'yes' ? '有' : '无') + '</span></div>';
+        if (data.has_elevator === 'yes' && data.elevator_dimensions) {
+          html += '<div class="detail-item"><span class="key">电梯尺寸：</span><span class="val">' + data.elevator_dimensions + ' mm</span></div>';
+        }
+        html += '<div class="detail-item detail-section-full"><span class="key">地下管线情况：</span><span class="val">' + formatVal('underground_utilities', data.underground_utilities) + '</span></div>';
+        html += '</div>';
+        if (boothPhotos.length > 0) {
+          html += renderPhotoGrid(boothPhotos, '喷房内部及四周照片');
+        }
+        html += '</div>';
+
+        // 控制柜与小门
+        html += '<div class="detail-section"><h3>控制柜与小门</h3><div class="detail-grid">';
+        ['cabinet_install_width','aux_door_position','door_to_front_wall','door_width'].forEach(function(f) {
+          html += '<div class="detail-item"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
+        });
+        html += '</div></div>';
+
+        // 墙面烤灯（仅在有时显示整个区块）
+        if (data.has_lamp === 'yes') {
+          html += '<div class="detail-section"><h3>墙面烤灯</h3><div class="detail-grid">';
+          ['lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp','lamp_to_lamp_1','lamp_to_lamp_2'].forEach(function(f) {
+            html += '<div class="detail-item"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
+          });
+          html += '</div></div>';
+        }
+
+        // 气源与电源
+        html += '<div class="detail-section"><h3>气源与电源</h3><div class="detail-grid">';
+        html += '<div class="detail-item detail-section-full"><span class="key">气源位置：</span><span class="val">' + formatVal('air_supply_location', data.air_supply_location) + '</span></div>';
+        if (airPhotos.length > 0) {
+          html += '<div class="detail-item detail-section-full">' + renderPhotoGrid(airPhotos, '气源点位照片') + '</div>';
+        }
+        html += '<div class="detail-item detail-section-full"><span class="key">220V电源位置：</span><span class="val">' + formatVal('power_supply_location', data.power_supply_location) + '</span></div>';
+        if (powerPhotos.length > 0) {
+          html += '<div class="detail-item detail-section-full">' + renderPhotoGrid(powerPhotos, '电源点位照片') + '</div>';
+        }
+        html += '</div></div>';
+
+        // 喷房内部尺寸
+        html += '<div class="detail-section"><h3>喷房内部尺寸</h3><div class="detail-grid">';
+        ['interior_height','light_to_grate_height','light_width','interior_width','interior_length'].forEach(function(f) {
+          html += '<div class="detail-item"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
+        });
+        html += '</div></div>';
+
+        // 地坑尺寸
+        html += '<div class="detail-section"><h3>地坑尺寸</h3><div class="detail-grid">';
+        ['pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6','pit_width','edge_bar_width'].forEach(function(f) {
+          html += '<div class="detail-item"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
+        });
+        // 水泥墩
+        html += '<div class="detail-item detail-section-full"><span class="key">水泥墩：</span><span class="val">' + (data.has_pier === 'yes' ? '有' : '无') + '</span></div>';
+        if (data.has_pier === 'yes') {
+          ['concrete_pier_length','concrete_pier_height'].forEach(function(f) {
+            html += '<div class="detail-item"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
+          });
+        }
+        // 斜坡
+        html += '<div class="detail-item detail-section-full"><span class="key">斜坡：</span><span class="val">' + (data.has_ramp === 'yes' ? '有' : '无') + '</span></div>';
+        if (data.has_ramp === 'yes') {
+          ['ramp_length','ramp_height'].forEach(function(f) {
+            html += '<div class="detail-item"><span class="key">' + (FIELD_LABELS[f] || f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
+          });
+        }
+        html += '</div></div>';
+
+        // 备注
+        html += '<div class="detail-section"><h3>备注</h3><div class="detail-grid">';
+        html += '<div class="detail-item detail-section-full"><span class="val">' + (data.remarks || '无') + '</span></div>';
+        html += '</div></div>';
+
         html += '<div class="detail-item" style="margin-top:10px;"><span class="key">提交时间：</span><span class="val">' + new Date(data.created_at).toLocaleString('zh-CN') + '</span></div>';
         document.getElementById('detailContent').innerHTML = html;
         document.getElementById('detailModal').classList.add('active');
@@ -728,8 +810,16 @@
       btn.disabled = true;
       btn.textContent = '生成中...';
       try {
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
-        const imgData = canvas.toDataURL('image/png');
+        // 提高分辨率 scale=3，使用JPEG压缩减小文件体积
+        const canvas = await html2canvas(element, {
+          scale: 3,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          imageTimeout: 15000
+        });
+        // 使用JPEG高质量压缩，比PNG小很多
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -739,16 +829,22 @@
         const imgHeight = canvas.height * imgWidth / canvas.width;
         let heightLeft = imgHeight;
         let position = margin;
-        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
         heightLeft -= (pageHeight - margin * 2);
         while (heightLeft > 0) {
           position = heightLeft - imgHeight + margin;
           pdf.addPage();
-          pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+          pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
           heightLeft -= (pageHeight - margin * 2);
         }
-        const name = (currentDetailData && currentDetailData.customer_name) || (currentDetailData && currentDetailData.survey_name) || 'survey';
-        pdf.save('喷房勘测_' + name + '_' + new Date().toISOString().slice(0,10) + '.pdf');
+        // 文件名：日期+客户名+邀请码
+        const dateStr = new Date().toISOString().slice(0,10);
+        const customer = (currentDetailData && currentDetailData.customer_name) || '未知客户';
+        const inviteCode = (currentDetailData && currentDetailData.invite_code) || 'NA';
+        // 清理文件名中的特殊字符
+        const safeCustomer = customer.replace(/[\\/:*?"<>|]/g, '_');
+        const fileName = dateStr + '_' + safeCustomer + '_' + inviteCode + '.pdf';
+        pdf.save(fileName);
       } catch (err) {
         alert('PDF导出失败：' + err.message);
       } finally {
@@ -768,7 +864,6 @@
         alert('删除失败');
       }
     }
-
     function exportExcel() {
       fetch('/api/export', { headers: { 'Authorization': authHeader } })
         .then(res => {
@@ -784,7 +879,6 @@
           window.URL.revokeObjectURL(url);
         });
     }
-
     // ========== 邀请码管理 ==========
     async function loadInviteCodes() {
       try {
@@ -799,7 +893,6 @@
         console.error(err);
       }
     }
-
     function renderInviteTable(codes) {
       inviteCodeList = codes;
       const tbody = document.getElementById('inviteTableBody');
@@ -836,7 +929,6 @@
       div.textContent = str;
       return div.innerHTML;
     }
-
     async function createInviteCode() {
       const name = document.getElementById('newCustomerName').value.trim();
       const desc = document.getElementById('newDesc').value.trim();
@@ -858,7 +950,6 @@
         alert('创建失败：' + err.message);
       }
     }
-
     async function toggleInvite(id) {
       try {
         await fetch(`/api/invite-codes/${id}/toggle`, {
@@ -870,7 +961,6 @@
         alert('操作失败');
       }
     }
-
     async function deleteInvite(id) {
       if (!confirm('确定删除这个邀请码吗？删除后对应链接将失效。')) return;
       try {
@@ -883,7 +973,6 @@
         alert('删除失败');
       }
     }
-
     // 二维码
     function showQRByIdx(idx) {
       const c = inviteCodeList[idx];
@@ -934,7 +1023,6 @@
         window.open(currentQRUrl, '_blank', 'noopener,noreferrer');
       }
     }
-
     function copyLink() {
       if (!currentQRUrl) return;
       navigator.clipboard.writeText(currentQRUrl).then(() => {
@@ -953,7 +1041,6 @@
         prompt('复制以下链接发给客户：', link);
       });
     }
-
     function downloadQR() {
       const img = document.querySelector('#qrCode img');
       if (img && img.src) {
@@ -973,18 +1060,15 @@
         alert('二维码尚未生成完成，请稍候');
       }
     }
-
     function closeModal(id) {
       document.getElementById(id).classList.remove('active');
     }
-
     // 点击弹窗外部关闭
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('active');
       });
     });
-
     // 照片预览
     function openPhotoPreview(src) {
       document.getElementById('photoPreviewImg').src = src;
@@ -993,7 +1077,13 @@
     function closePhotoPreview() {
       document.getElementById('photoPreview').classList.remove('active');
     }
-
+    // 回车登录
+    document.getElementById('loginPass').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') doLogin();
+    });
+    document.getElementById('loginUser').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('loginPass').focus();
+    });
     checkAuth();
   </script>
 </body>

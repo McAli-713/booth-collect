@@ -109,7 +109,36 @@
       margin-top: 3px;
     }
     .hint .en { color: #bbb; }
-    button[type="submit"] {
+    /* 带单位的输入框 */
+    .input-with-unit {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-with-unit input {
+      padding-right: 42px;
+    }
+    .unit-suffix {
+      position: absolute;
+      right: 12px;
+      font-size: 13px;
+      color: #888;
+      font-weight: 500;
+      pointer-events: none;
+    }
+    /* 错误提示 */
+    .field-error {
+      color: #e53935;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
+    .field-error.show { display: block; }
+    .input-error {
+      border-color: #e53935 !important;
+      background: #fff5f5;
+    }
+    button[type="submit"], .btn-preview, .btn-confirm, .btn-back {
       width: 100%;
       padding: 14px;
       background: #1a73e8;
@@ -121,8 +150,12 @@
       cursor: pointer;
       margin-top: 10px;
     }
-    button[type="submit"]:hover { background: #1557b0; }
-    button[type="submit"]:disabled { background: #aaa; cursor: not-allowed; }
+    button[type="submit"]:hover, .btn-preview:hover { background: #1557b0; }
+    button[type="submit"]:disabled, .btn-preview:disabled { background: #aaa; cursor: not-allowed; }
+    .btn-confirm { background: #2e7d32; }
+    .btn-confirm:hover { background: #1b5e20; }
+    .btn-back { background: #757575; }
+    .btn-back:hover { background: #616161; }
     .toast {
       position: fixed;
       top: 20px;
@@ -257,6 +290,7 @@
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
+      margin-bottom: 0;
     }
     .radio-group input[type="radio"] { width: 16px; height: 16px; cursor: pointer; }
     .conditional-section {
@@ -292,6 +326,62 @@
       margin-bottom: 12px;
     }
     .cabinet-note .en { color: #ef6c00; }
+    /* 预览页面 */
+    .preview-page { display: none; }
+    .preview-page.active { display: block; }
+    .preview-header {
+      background: #e8f5e9;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .preview-header h2 { color: #2e7d32; font-size: 18px; margin-bottom: 4px; }
+    .preview-header p { color: #558b2f; font-size: 13px; }
+    .preview-section {
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #eee;
+    }
+    .preview-section h3 {
+      font-size: 15px;
+      color: #1a73e8;
+      margin-bottom: 10px;
+    }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 16px;
+    }
+    .preview-item {
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    .preview-item .pk { color: #888; }
+    .preview-item .pv { color: #333; font-weight: 500; }
+    .preview-item.full { grid-column: 1 / -1; }
+    .preview-photos {
+      margin-top: 8px;
+    }
+    .preview-photos .photo-label {
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .preview-photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .preview-photo-grid img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -310,7 +400,7 @@
     <div class="subtitle">On-site Spray Booth Survey</div>
     <div class="customer-banner" id="customerBanner"></div>
     
-    <form id="surveyForm">
+    <form id="surveyForm" novalidate>
       <input type="hidden" name="invite_code" id="inviteCode">
       
       <!-- 一、现场概述 -->
@@ -320,60 +410,74 @@
         <div class="form-group">
           <label>勘测名称 <span class="required">*</span> <span class="en">/ Survey Name</span></label>
           <input type="text" name="survey_name" placeholder="如：某某4S店喷房勘测 / e.g.: XX 4S Store Booth Survey" required>
+          <div class="field-error">此项为必填 / This field is required</div>
         </div>
         
         <div class="form-group">
           <label>现场地理位置 <span class="required">*</span> <span class="en">/ Location</span></label>
           <textarea name="location" placeholder="例：中国浙江省台州市温岭市泽国镇泽楚路926号2幢&#10;e.g.: Building 2, No.926, Zechu Rd, Zeguo Town, Wenling, Taizhou, Zhejiang, China" required></textarea>
+          <div class="field-error">此项为必填 / This field is required</div>
         </div>
         
         <div class="row">
           <div class="form-group">
-            <label>主要喷涂车型 <span class="en">/ Main Vehicle Types</span></label>
-            <input type="text" name="main_vehicle_types" placeholder="例：奔驰、奥迪、特斯拉 / e.g.: Mercedes-Benz, Audi, Tesla">
+            <label>主要喷涂车型 <span class="required">*</span> <span class="en">/ Main Vehicle Types</span></label>
+            <input type="text" name="main_vehicle_types" placeholder="例：奔驰、奥迪、特斯拉 / e.g.: Mercedes-Benz, Audi, Tesla" required>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>喷房加热方式 <span class="en">/ Heating Method</span></label>
-            <input type="text" name="heating_method" placeholder="例：顶部热源或电加热 / e.g.: Overhead Heat or Electric Heating">
-          </div>
-        </div>
-        
-        <div class="row">
-          <div class="form-group">
-            <label>喷房最高气压 <span class="en">/ Max Air Pressure</span></label>
-            <input type="text" name="max_air_pressure" placeholder="例：8bar / e.g.: 8 bar">
-          </div>
-          <div class="form-group">
-            <label>喷房最高温度 <span class="en">/ Max Temperature</span></label>
-            <input type="text" name="max_temperature" placeholder="例：60℃ / e.g.: 60℃">
+            <label>喷房加热方式 <span class="required">*</span> <span class="en">/ Heating Method</span></label>
+            <input type="text" name="heating_method" placeholder="例：顶部热源或电加热 / e.g.: Overhead Heat or Electric Heating" required>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         
         <div class="row">
           <div class="form-group">
-            <label>地板/楼板厚度 <span class="en">/ Floor/Slab Thickness</span></label>
-            <input type="text" name="floor_thickness" placeholder="例：100mm / e.g.: 100 mm">
+            <label>喷房最高气压 <span class="required">*</span> <span class="en">/ Max Air Pressure</span></label>
+            <input type="text" name="max_air_pressure" placeholder="例：8bar / e.g.: 8 bar" required>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>喷房所在楼层 <span class="en">/ Booth Level</span></label>
-            <input type="text" name="booth_level" placeholder="例：一楼 / 三楼 / e.g.: 1st Floor / 3rd Floor">
+            <label>喷房最高温度 <span class="required">*</span> <span class="en">/ Max Temperature</span></label>
+            <input type="text" name="max_temperature" placeholder="例：60℃ / e.g.: 60℃" required>
+            <div class="field-error">此项为必填 / This field is required</div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="form-group">
+            <label>地板/楼板厚度 <span class="required">*</span> <span class="en">/ Floor/Slab Thickness</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="floor_thickness" placeholder="例：100" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
+          </div>
+          <div class="form-group">
+            <label>喷房所在楼层 <span class="required">*</span> <span class="en">/ Booth Level</span></label>
+            <input type="text" name="booth_level" placeholder="例：一楼 / 三楼 / e.g.: 1st Floor / 3rd Floor" required>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         
         <div class="form-group">
-          <label>现场是否有货梯（设备运输用）<span class="en"> / Freight Elevator for Equipment</span></label>
+          <label>现场是否有货梯（设备运输用）<span class="required">*</span><span class="en"> / Freight Elevator for Equipment</span></label>
           <div class="radio-group">
             <label><input type="radio" name="has_elevator" value="yes" onchange="toggleSection('elevator', true)"> 有 / Yes</label>
             <label><input type="radio" name="has_elevator" value="no" onchange="toggleSection('elevator', false)" checked> 无 / No</label>
           </div>
           <div class="conditional-section" id="elevatorSection">
-            <input type="text" name="elevator_dimensions" placeholder="电梯内部尺寸，例：5450×2255mm / Elevator internal dims, e.g.: 5450×2255mm">
+            <label>电梯内部尺寸 <span class="en">/ Elevator Internal Dimensions</span></label>
+            <input type="text" name="elevator_dimensions" placeholder="例：5450×2255 / e.g.: 5450×2255 (单位mm)">
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         
         <div class="form-group">
-          <label>喷房地下有无钢筋、水管和电线 <span class="en">/ Rebar, Pipes & Wires Under Booth</span></label>
-          <input type="text" name="underground_utilities" placeholder="例：无 / 有钢筋 / e.g.: None / Has rebar">
+          <label>喷房地下有无钢筋、水管和电线 <span class="required">*</span> <span class="en">/ Rebar, Pipes & Wires Under Booth</span></label>
+          <input type="text" name="underground_utilities" placeholder="例：无 / 有钢筋 / e.g.: None / Has rebar" required>
+          <div class="field-error">此项为必填 / This field is required</div>
         </div>
         
         <!-- 喷房现场照片 + 示例图 -->
@@ -406,6 +510,7 @@
             <input type="file" id="boothPhotos" accept="image/*" multiple onchange="handlePhotoUpload(this, 'booth')">
           </div>
           <div class="thumb-list" id="boothThumbList"></div>
+          <div class="field-error" id="boothPhotoError">请至少上传一张喷房现场照片 / Please upload at least one booth photo</div>
         </div>
         
         <!-- 控制柜安装位置 -->
@@ -420,13 +525,18 @@
         
         <div class="row">
           <div class="form-group">
-            <label>安装电柜处宽度 <span class="en">/ Width for Cabinet Installation</span></label>
-            <input type="text" name="cabinet_install_width" placeholder="例：500mm / e.g.: 500 mm">
+            <label>安装电柜处宽度 <span class="required">*</span> <span class="en">/ Width for Cabinet Installation</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="cabinet_install_width" placeholder="例：500" required>
+              <span class="unit-suffix">mm</span>
+            </div>
             <div class="hint">墙面到喷房门铰链的距离 <span class="en">/ Wall to booth door hinge</span></div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>喷房小门位置 <span class="en">/ Auxiliary Door Position</span></label>
-            <input type="text" name="aux_door_position" placeholder="例：左后（站在喷房外正对大门）/ e.g.: Left Rear">
+            <label>喷房小门位置 <span class="required">*</span> <span class="en">/ Auxiliary Door Position</span></label>
+            <input type="text" name="aux_door_position" placeholder="例：左后（站在喷房外正对大门）/ e.g.: Left Rear" required>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         
@@ -437,17 +547,25 @@
         
         <div class="row">
           <div class="form-group">
-            <label>门与前墙面距离 <span class="en">/ Distance from Door to Front Wall</span></label>
-            <input type="text" name="door_to_front_wall" placeholder="例：xxx mm">
+            <label>门与前墙面距离 <span class="required">*</span> <span class="en">/ Distance from Door to Front Wall</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="door_to_front_wall" placeholder="例：xxx" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>门宽 <span class="en">/ Door Width</span></label>
-            <input type="text" name="door_width" placeholder="例：760mm / e.g.: 760 mm">
+            <label>门宽 <span class="required">*</span> <span class="en">/ Door Width</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="door_width" placeholder="例：760" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         
         <!-- 墙面烤灯位置 -->
-        <div class="subsection">墙面烤灯位置（选填）<span class="en">Wall-Mounted Lamp Position (Optional)</span></div>
+        <div class="subsection">墙面烤灯位置 <span class="en">Wall-Mounted Lamp Position</span></div>
         <div class="radio-group">
           <label><input type="radio" name="has_lamp" value="yes" onchange="toggleSection('lamp', true)"> 有 / Yes</label>
           <label><input type="radio" name="has_lamp" value="no" onchange="toggleSection('lamp', false)" checked> 无 / No</label>
@@ -465,16 +583,28 @@
           </div>
           <div class="row-3">
             <div class="form-group">
-              <label>烤灯下沿至格栅面高度 <span class="en">/ Lower Edge to Grating</span></label>
-              <input type="text" name="lamp_lower_height" placeholder="例：510mm / e.g.: 510 mm">
+              <label>烤灯下沿至格栅面高度 <span class="required">*</span> <span class="en">/ Lower Edge to Grating</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="lamp_lower_height" placeholder="例：510" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
             <div class="form-group">
-              <label>烤灯上沿至格栅面高度 <span class="en">/ Upper Edge to Grating</span></label>
-              <input type="text" name="lamp_upper_height" placeholder="例：1070mm / e.g.: 1070 mm">
+              <label>烤灯上沿至格栅面高度 <span class="required">*</span> <span class="en">/ Upper Edge to Grating</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="lamp_upper_height" placeholder="例：1070" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
             <div class="form-group">
-              <label>烤灯宽度 <span class="en">/ Lamp Width</span></label>
-              <input type="text" name="lamp_width" placeholder="例：145mm / e.g.: 145 mm">
+              <label>烤灯宽度 <span class="required">*</span> <span class="en">/ Lamp Width</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="lamp_width" placeholder="例：145" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
           </div>
           <div class="example-img">
@@ -483,16 +613,28 @@
           </div>
           <div class="row-3">
             <div class="form-group">
-              <label>前墙面与烤灯距离 <span class="en">/ Front Wall to Lamp</span></label>
-              <input type="text" name="front_wall_to_lamp" placeholder="例：1500mm / e.g.: 1500 mm">
+              <label>前墙面与烤灯距离 <span class="required">*</span> <span class="en">/ Front Wall to Lamp</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="front_wall_to_lamp" placeholder="例：1500" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
             <div class="form-group">
-              <label>烤灯间距1 <span class="en">/ Lamp-to-Lamp Dist 1</span></label>
-              <input type="text" name="lamp_to_lamp_1" placeholder="例：200mm / e.g.: 200 mm">
+              <label>烤灯间距1 <span class="required">*</span> <span class="en">/ Lamp-to-Lamp Dist 1</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="lamp_to_lamp_1" placeholder="例：200" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
             <div class="form-group">
-              <label>烤灯间距2 <span class="en">/ Lamp-to-Lamp Dist 2</span></label>
-              <input type="text" name="lamp_to_lamp_2" placeholder="例：200mm / e.g.: 200 mm">
+              <label>烤灯间距2 <span class="required">*</span> <span class="en">/ Lamp-to-Lamp Dist 2</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="lamp_to_lamp_2" placeholder="例：200" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
           </div>
         </div>
@@ -504,8 +646,9 @@
           <div class="caption">气源位置示意 / Air Supply Location</div>
         </div>
         <div class="form-group">
-          <label>气源位置描述 <span class="en">/ Air Supply Description</span></label>
-          <input type="text" name="air_supply_location" placeholder="描述气源接口位置 / Describe air supply outlet location">
+          <label>气源位置描述 <span class="required">*</span> <span class="en">/ Air Supply Description</span></label>
+          <input type="text" name="air_supply_location" placeholder="描述气源接口位置 / Describe air supply outlet location" required>
+          <div class="field-error">此项为必填 / This field is required</div>
         </div>
         <div class="form-group">
           <label>气源点位照片 <span class="en">/ Air Supply Photos</span></label>
@@ -524,8 +667,9 @@
           <div class="caption">电源位置示意 / Power Supply Location</div>
         </div>
         <div class="form-group">
-          <label>220V电源位置描述 <span class="en">/ Power Supply Description</span></label>
-          <input type="text" name="power_supply_location" placeholder="描述电源插座位置 / Describe power outlet location">
+          <label>220V电源位置描述 <span class="required">*</span> <span class="en">/ Power Supply Description</span></label>
+          <input type="text" name="power_supply_location" placeholder="描述电源插座位置 / Describe power outlet location" required>
+          <div class="field-error">此项为必填 / This field is required</div>
         </div>
         <div class="form-group">
           <label>电源点位照片 <span class="en">/ Power Supply Photos</span></label>
@@ -548,23 +692,39 @@
         
         <div class="row">
           <div class="form-group">
-            <label>内部高度 <span class="en">/ Interior Height</span></label>
-            <input type="text" name="interior_height" placeholder="例：3000mm / e.g.: 3000 mm">
+            <label>内部高度 <span class="required">*</span> <span class="en">/ Interior Height</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="interior_height" placeholder="例：3000" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>灯具底部至格栅高度 <span class="en">/ Light Bottom to Grate</span></label>
-            <input type="text" name="light_to_grate_height" placeholder="例：xxx mm">
+            <label>灯具底部至格栅高度 <span class="required">*</span> <span class="en">/ Light Bottom to Grate</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="light_to_grate_height" placeholder="例：xxx" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         
         <div class="row">
           <div class="form-group">
-            <label>灯具宽度 <span class="en">/ Light Width</span></label>
-            <input type="text" name="light_width" placeholder="例：300mm / e.g.: 300 mm">
+            <label>灯具宽度 <span class="required">*</span> <span class="en">/ Light Width</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="light_width" placeholder="例：300" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>内部宽度 <span class="en">/ Interior Width</span></label>
-            <input type="text" name="interior_width" placeholder="例：3900mm / e.g.: 3900 mm">
+            <label>内部宽度 <span class="required">*</span> <span class="en">/ Interior Width</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="interior_width" placeholder="例：3900" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         
@@ -573,8 +733,12 @@
           <div class="caption">内部长度示意 / Interior Length</div>
         </div>
         <div class="form-group">
-          <label>内部长度 <span class="en">/ Interior Length</span></label>
-          <input type="text" name="interior_length" placeholder="例：6900mm / e.g.: 6900 mm">
+          <label>内部长度 <span class="required">*</span> <span class="en">/ Interior Length</span></label>
+          <div class="input-with-unit">
+            <input type="number" name="interior_length" placeholder="例：6900" required>
+            <span class="unit-suffix">mm</span>
+          </div>
+          <div class="field-error">此项为必填 / This field is required</div>
         </div>
       </div>
       
@@ -592,41 +756,73 @@
         </div>
         <div class="row-3">
           <div class="form-group">
-            <label>深度点1 <span class="en">/ Depth Point 1</span></label>
-            <input type="text" name="pit_depth_1" placeholder="例：300mm">
+            <label>深度点1 <span class="required">*</span> <span class="en">/ Depth Point 1</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="pit_depth_1" placeholder="例：300" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>深度点2 <span class="en">/ Depth Point 2</span></label>
-            <input type="text" name="pit_depth_2" placeholder="例：300mm">
+            <label>深度点2 <span class="required">*</span> <span class="en">/ Depth Point 2</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="pit_depth_2" placeholder="例：300" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>深度点3 <span class="en">/ Depth Point 3</span></label>
-            <input type="text" name="pit_depth_3" placeholder="例：300mm">
+            <label>深度点3 <span class="required">*</span> <span class="en">/ Depth Point 3</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="pit_depth_3" placeholder="例：300" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         <div class="row-3">
           <div class="form-group">
-            <label>深度点4 <span class="en">/ Depth Point 4</span></label>
-            <input type="text" name="pit_depth_4" placeholder="例：300mm">
+            <label>深度点4 <span class="required">*</span> <span class="en">/ Depth Point 4</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="pit_depth_4" placeholder="例：300" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>深度点5 <span class="en">/ Depth Point 5</span></label>
-            <input type="text" name="pit_depth_5" placeholder="例：300mm">
+            <label>深度点5 <span class="required">*</span> <span class="en">/ Depth Point 5</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="pit_depth_5" placeholder="例：300" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>深度点6 <span class="en">/ Depth Point 6</span></label>
-            <input type="text" name="pit_depth_6" placeholder="例：300mm">
+            <label>深度点6 <span class="required">*</span> <span class="en">/ Depth Point 6</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="pit_depth_6" placeholder="例：300" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         
         <div class="row">
           <div class="form-group">
-            <label>地坑宽度 <span class="en">/ Pit Width</span></label>
-            <input type="text" name="pit_width" placeholder="例：550mm / e.g.: 550 mm">
+            <label>地坑宽度 <span class="required">*</span> <span class="en">/ Pit Width</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="pit_width" placeholder="例：550" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
-            <label>墙边筋宽度 <span class="en">/ Edge Bar Width</span></label>
-            <input type="text" name="edge_bar_width" placeholder="例：20mm / e.g.: 20 mm">
+            <label>墙边筋宽度 <span class="required">*</span> <span class="en">/ Edge Bar Width</span></label>
+            <div class="input-with-unit">
+              <input type="number" name="edge_bar_width" placeholder="例：20" required>
+              <span class="unit-suffix">mm</span>
+            </div>
+            <div class="field-error">此项为必填 / This field is required</div>
           </div>
         </div>
         <div class="example-row">
@@ -652,12 +848,20 @@
           </div>
           <div class="row">
             <div class="form-group">
-              <label>水泥墩长度 <span class="en">/ Concrete Pier Length</span></label>
-              <input type="text" name="concrete_pier_length" placeholder="例：400mm / e.g.: 400 mm">
+              <label>水泥墩长度 <span class="required">*</span> <span class="en">/ Concrete Pier Length</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="concrete_pier_length" placeholder="例：400" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
             <div class="form-group">
-              <label>水泥墩高度 <span class="en">/ Concrete Pier Height</span></label>
-              <input type="text" name="concrete_pier_height" placeholder="例：250mm / e.g.: 250 mm">
+              <label>水泥墩高度 <span class="required">*</span> <span class="en">/ Concrete Pier Height</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="concrete_pier_height" placeholder="例：250" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
           </div>
         </div>
@@ -674,12 +878,20 @@
           </div>
           <div class="row">
             <div class="form-group">
-              <label>平面斜坡长度 <span class="en">/ Horizontal Ramp Length</span></label>
-              <input type="text" name="ramp_length" placeholder="例：1000mm / e.g.: 1000 mm">
+              <label>平面斜坡长度 <span class="required">*</span> <span class="en">/ Horizontal Ramp Length</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="ramp_length" placeholder="例：1000" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
             <div class="form-group">
-              <label>斜坡高度 <span class="en">/ Ramp Height</span></label>
-              <input type="text" name="ramp_height" placeholder="例：100mm / e.g.: 100 mm">
+              <label>斜坡高度 <span class="required">*</span> <span class="en">/ Ramp Height</span></label>
+              <div class="input-with-unit">
+                <input type="number" name="ramp_height" placeholder="例：100" required>
+                <span class="unit-suffix">mm</span>
+              </div>
+              <div class="field-error">此项为必填 / This field is required</div>
             </div>
           </div>
         </div>
@@ -688,11 +900,22 @@
       <!-- 备注 -->
       <div class="form-group">
         <label>备注 <span class="en">/ Remarks</span></label>
-        <textarea name="remarks" placeholder="其他需要说明的事项 / Other notes"></textarea>
+        <textarea name="remarks" placeholder="其他需要说明的事项 / Other notes（如无请填“无”）"></textarea>
       </div>
       
-      <button type="submit" id="submitBtn">提交勘测记录 / Submit Survey</button>
+      <button type="submit" id="submitBtn">生成预览 / Generate Preview</button>
     </form>
+  </div>
+
+  <!-- 预览确认页面 -->
+  <div class="container preview-page" id="previewPage">
+    <div class="preview-header">
+      <h2>请确认勘测信息 / Please Confirm Survey Info</h2>
+      <p>请仔细核对以下内容，确认无误后点击"确认提交" / Please review carefully before submitting</p>
+    </div>
+    <div id="previewContent"></div>
+    <button class="btn-back" onclick="backToForm()">← 返回修改 / Back to Edit</button>
+    <button class="btn-confirm" id="confirmBtn" onclick="confirmSubmit()">确认提交 / Confirm Submit</button>
   </div>
   
   <!-- 图片预览模态框 -->
@@ -705,7 +928,9 @@
     const form = document.getElementById('surveyForm');
     const toast = document.getElementById('toast');
     const submitBtn = document.getElementById('submitBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
     const photoStore = { booth: [], air: [], power: [] };
+    let currentCustomerName = '';
     
     function showToast(message, type = 'success') {
       toast.textContent = message;
@@ -719,7 +944,8 @@
       document.getElementById('imgPreviewModal').classList.add('active');
     }
     
-    function compressImage(file, maxSize = 1280, quality = 0.7) {
+    // 图片压缩：提高质量，减少压缩损失
+    function compressImage(file, maxSize = 1920, quality = 0.92) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = e => {
@@ -769,6 +995,9 @@
         }
       }
       input.value = '';
+      // 清除照片错误提示
+      const boothErr = document.getElementById('boothPhotoError');
+      if (boothErr && photoStore.booth.length > 0) boothErr.classList.remove('show');
     }
     
     function removePhoto(category, idx) {
@@ -804,7 +1033,239 @@
         } else {
           section.classList.remove('visible');
           section.querySelectorAll('input, textarea').forEach(el => { el.value = ''; });
+          // 清除错误状态
+          section.querySelectorAll('.field-error').forEach(el => el.classList.remove('show'));
+          section.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
         }
+      }
+    }
+    
+    // 表单校验：返回第一个未填的元素，null表示全部通过
+    function validateForm() {
+      clearAllErrors();
+      const requiredInputs = form.querySelectorAll('input[required], textarea[required], select[required]');
+      let firstInvalid = null;
+      
+      for (const el of requiredInputs) {
+        // 跳过隐藏的条件字段
+        const condSection = el.closest('.conditional-section');
+        if (condSection && !condSection.classList.contains('visible')) continue;
+        
+        if (!el.value || !el.value.trim()) {
+          el.classList.add('input-error');
+          const errDiv = el.parentElement.parentElement.querySelector('.field-error') || el.closest('.form-group').querySelector('.field-error');
+          if (errDiv) errDiv.classList.add('show');
+          if (!firstInvalid) firstInvalid = el;
+        }
+      }
+      
+      // 校验喷房照片
+      if (photoStore.booth.length === 0) {
+        const boothErr = document.getElementById('boothPhotoError');
+        if (boothErr) boothErr.classList.add('show');
+        if (!firstInvalid) firstInvalid = document.getElementById('boothPhotos');
+      }
+      
+      return firstInvalid;
+    }
+    
+    function clearAllErrors() {
+      form.querySelectorAll('.field-error').forEach(el => el.classList.remove('show'));
+      form.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+    }
+    
+    // 输入时清除错误状态
+    form.addEventListener('input', function(e) {
+      if (e.target.classList.contains('input-error')) {
+        e.target.classList.remove('input-error');
+        const errDiv = e.target.closest('.form-group')?.querySelector('.field-error');
+        if (errDiv) errDiv.classList.remove('show');
+      }
+    });
+    
+    // 收集表单数据
+    function collectFormData() {
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      const allPhotos = [
+        ...photoStore.booth.map(d => ({ category: 'booth', data: d })),
+        ...photoStore.air.map(d => ({ category: 'air', data: d })),
+        ...photoStore.power.map(d => ({ category: 'power', data: d }))
+      ];
+      data.photos = allPhotos;
+      data.customer_name = currentCustomerName;
+      return data;
+    }
+    
+    // 字段标签映射（预览用）
+    const PREVIEW_LABELS = {
+      survey_name: '勘测名称', location: '现场地址', main_vehicle_types: '主要喷涂车型',
+      heating_method: '加热方式', max_air_pressure: '最高气压', max_temperature: '最高温度',
+      floor_thickness: '楼板厚度', booth_level: '喷房楼层', elevator_dimensions: '电梯尺寸',
+      underground_utilities: '地下管线情况', cabinet_install_width: '电柜安装宽度',
+      aux_door_position: '小门位置', door_to_front_wall: '门到前墙距离', door_width: '门宽',
+      lamp_lower_height: '烤灯下沿高度', lamp_upper_height: '烤灯上沿高度', lamp_width: '烤灯宽度',
+      front_wall_to_lamp: '前墙到烤灯距离', lamp_to_lamp_1: '烤灯间距1', lamp_to_lamp_2: '烤灯间距2',
+      air_supply_location: '气源位置', power_supply_location: '220V电源位置',
+      interior_height: '内部高度', light_to_grate_height: '灯具到格栅高度', light_width: '灯具宽度',
+      interior_width: '内部宽度', interior_length: '内部长度',
+      pit_depth_1: '地坑深度1', pit_depth_2: '地坑深度2', pit_depth_3: '地坑深度3',
+      pit_depth_4: '地坑深度4', pit_depth_5: '地坑深度5', pit_depth_6: '地坑深度6',
+      pit_width: '地坑宽度', edge_bar_width: '墙边筋宽度',
+      concrete_pier_length: '水泥墩长度', concrete_pier_height: '水泥墩高度',
+      ramp_length: '斜坡长度', ramp_height: '斜坡高度', remarks: '备注'
+    };
+    // 需要加mm单位的字段
+    const MM_FIELDS = new Set([
+      'floor_thickness','cabinet_install_width','door_to_front_wall','door_width',
+      'lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp',
+      'lamp_to_lamp_1','lamp_to_lamp_2','interior_height','light_to_grate_height',
+      'light_width','interior_width','interior_length',
+      'pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6',
+      'pit_width','edge_bar_width','concrete_pier_length','concrete_pier_height',
+      'ramp_length','ramp_height'
+    ]);
+    
+    function formatValue(key, val) {
+      if (!val) return '-';
+      if (MM_FIELDS.has(key)) return val + ' mm';
+      return val;
+    }
+    
+    // 生成预览页面
+    function generatePreview(data) {
+      let html = '';
+      
+      // 基本信息
+      html += '<div class="preview-section"><h3>一、现场概述</h3><div class="preview-grid">';
+      const basicFields = ['survey_name','location','main_vehicle_types','heating_method','max_air_pressure','max_temperature','floor_thickness','booth_level'];
+      basicFields.forEach(f => {
+        const full = (f === 'location') ? ' full' : '';
+        html += '<div class="preview-item' + full + '"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+      });
+      // 电梯
+      html += '<div class="preview-item full"><span class="pk">货梯：</span><span class="pv">' + (data.has_elevator === 'yes' ? '有' : '无') + '</span></div>';
+      if (data.has_elevator === 'yes' && data.elevator_dimensions) {
+        html += '<div class="preview-item full"><span class="pk">电梯尺寸：</span><span class="pv">' + data.elevator_dimensions + ' mm</span></div>';
+      }
+      html += '<div class="preview-item full"><span class="pk">地下管线情况：</span><span class="pv">' + formatValue('underground_utilities', data.underground_utilities) + '</span></div>';
+      // 喷房照片
+      const boothPhotos = (data.photos||[]).filter(p=>p.category==='booth');
+      if (boothPhotos.length > 0) {
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">喷房现场照片（' + boothPhotos.length + '张）</div><div class="preview-photo-grid">';
+        boothPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="喷房照片' + (i+1) + '">'; });
+        html += '</div></div></div>';
+      }
+      html += '</div></div>';
+      
+      // 控制柜与小门
+      html += '<div class="preview-section"><h3>控制柜与小门</h3><div class="preview-grid">';
+      ['cabinet_install_width','aux_door_position','door_to_front_wall','door_width'].forEach(f => {
+        html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+      });
+      html += '</div></div>';
+      
+      // 墙面烤灯（仅在有时显示）
+      if (data.has_lamp === 'yes') {
+        html += '<div class="preview-section"><h3>墙面烤灯</h3><div class="preview-grid">';
+        ['lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp','lamp_to_lamp_1','lamp_to_lamp_2'].forEach(f => {
+          html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+        });
+        html += '</div></div>';
+      }
+      
+      // 气源与电源
+      html += '<div class="preview-section"><h3>气源与电源</h3><div class="preview-grid">';
+      html += '<div class="preview-item full"><span class="pk">气源位置：</span><span class="pv">' + formatValue('air_supply_location', data.air_supply_location) + '</span></div>';
+      const airPhotos = (data.photos||[]).filter(p=>p.category==='air');
+      if (airPhotos.length > 0) {
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">气源点位照片（' + airPhotos.length + '张）</div><div class="preview-photo-grid">';
+        airPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="气源照片' + (i+1) + '">'; });
+        html += '</div></div></div>';
+      }
+      html += '<div class="preview-item full"><span class="pk">220V电源位置：</span><span class="pv">' + formatValue('power_supply_location', data.power_supply_location) + '</span></div>';
+      const powerPhotos = (data.photos||[]).filter(p=>p.category==='power');
+      if (powerPhotos.length > 0) {
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">电源点位照片（' + powerPhotos.length + '张）</div><div class="preview-photo-grid">';
+        powerPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="电源照片' + (i+1) + '">'; });
+        html += '</div></div></div>';
+      }
+      html += '</div></div>';
+      
+      // 内部尺寸
+      html += '<div class="preview-section"><h3>喷房内部尺寸</h3><div class="preview-grid">';
+      ['interior_height','light_to_grate_height','light_width','interior_width','interior_length'].forEach(f => {
+        html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+      });
+      html += '</div></div>';
+      
+      // 地坑尺寸
+      html += '<div class="preview-section"><h3>地坑尺寸</h3><div class="preview-grid">';
+      ['pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6','pit_width','edge_bar_width'].forEach(f => {
+        html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+      });
+      // 水泥墩
+      html += '<div class="preview-item full"><span class="pk">水泥墩：</span><span class="pv">' + (data.has_pier === 'yes' ? '有' : '无') + '</span></div>';
+      if (data.has_pier === 'yes') {
+        ['concrete_pier_length','concrete_pier_height'].forEach(f => {
+          html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+        });
+      }
+      // 斜坡
+      html += '<div class="preview-item full"><span class="pk">斜坡：</span><span class="pv">' + (data.has_ramp === 'yes' ? '有' : '无') + '</span></div>';
+      if (data.has_ramp === 'yes') {
+        ['ramp_length','ramp_height'].forEach(f => {
+          html += '<div class="preview-item"><span class="pk">' + (PREVIEW_LABELS[f]||f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
+        });
+      }
+      html += '</div></div>';
+      
+      // 备注
+      html += '<div class="preview-section"><h3>备注</h3><div class="preview-grid">';
+      html += '<div class="preview-item full"><span class="pv">' + (data.remarks || '无') + '</span></div>';
+      html += '</div></div>';
+      
+      document.getElementById('previewContent').innerHTML = html;
+    }
+    
+    // 返回修改
+    function backToForm() {
+      document.getElementById('previewPage').classList.remove('active');
+      document.getElementById('formContainer').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+    
+    // 确认提交
+    async function confirmSubmit() {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '提交中... / Submitting...';
+      const data = collectFormData();
+      try {
+        const res = await fetch('/api/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (res.ok) {
+          showToast('提交成功！/ Submitted successfully!', 'success');
+          form.reset();
+          photoStore.booth = []; photoStore.air = []; photoStore.power = [];
+          renderThumbList('booth'); renderThumbList('air'); renderThumbList('power');
+          document.getElementById('inviteCode').value = data.invite_code;
+          document.getElementById('previewPage').classList.remove('active');
+          document.getElementById('formContainer').style.display = 'block';
+          // 重置条件区域
+          ['elevator','lamp','pier','ramp'].forEach(s => toggleSection(s, false));
+          window.scrollTo(0, 0);
+        } else {
+          showToast(result.error || '提交失败 / Submit failed', 'error');
+        }
+      } catch (err) {
+        showToast('网络错误，请重试 / Network error, please retry', 'error');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '确认提交 / Confirm Submit';
       }
     }
     
@@ -821,6 +1282,7 @@
         if (data.valid) {
           document.getElementById('formContainer').style.display = 'block';
           document.getElementById('inviteCode').value = data.code;
+          currentCustomerName = data.customer_name;
           document.getElementById('customerBanner').innerHTML = '客户 / Customer：<strong>' + data.customer_name + '</strong>';
           document.title = '现场喷房勘测 - ' + data.customer_name;
         } else {
@@ -831,49 +1293,22 @@
       }
     }
     
+    // 表单提交 -> 校验 -> 生成预览
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      submitBtn.disabled = true;
-      submitBtn.textContent = '提交中... / Submitting...';
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-      // 保留分类信息存储照片
-      const allPhotos = [
-        ...photoStore.booth.map(d => ({ category: 'booth', data: d })),
-        ...photoStore.air.map(d => ({ category: 'air', data: d })),
-        ...photoStore.power.map(d => ({ category: 'power', data: d }))
-      ];
-      data.photos = allPhotos;
-      
-      if (photoStore.booth.length === 0) {
-        showToast('请至少上传一张喷房现场照片 / Please upload at least one booth photo', 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交勘测记录 / Submit Survey';
+      const invalidEl = validateForm();
+      if (invalidEl) {
+        // 滚动到第一个未填项
+        invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('请填写所有必填项 / Please fill in all required fields', 'error');
         return;
       }
-      try {
-        const res = await fetch('/api/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        const result = await res.json();
-        if (res.ok) {
-          showToast('提交成功！/ Submitted successfully!', 'success');
-          form.reset();
-          photoStore.booth = []; photoStore.air = []; photoStore.power = [];
-          renderThumbList('booth'); renderThumbList('air'); renderThumbList('power');
-          document.getElementById('inviteCode').value = data.invite_code;
-          window.scrollTo(0, 0);
-        } else {
-          showToast(result.error || '提交失败 / Submit failed', 'error');
-        }
-      } catch (err) {
-        showToast('网络错误，请重试 / Network error, please retry', 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交勘测记录 / Submit Survey';
-      }
+      // 校验通过，生成预览
+      const data = collectFormData();
+      generatePreview(data);
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('previewPage').classList.add('active');
+      window.scrollTo(0, 0);
     });
     
     checkInviteCode();
