@@ -956,7 +956,7 @@
     <h2>提交成功 / Submitted Successfully</h2>
     <p class="success-sub">您的勘测信息已成功提交，我们将尽快与您联系 / Your survey has been submitted, we will contact you soon.</p>
     <div class="success-info" id="successInfo"></div>
-    <button class="btn-new-survey" onclick="startNewSurvey()">填写新的勘测表 / Start New Survey</button>
+    <p style="font-size:12px;color:#999;margin-top:16px;">此勘测链接已失效，如需再次提交请联系管理员获取新链接 / This link has expired. Please contact admin for a new link if you need to submit again.</p>
   </div>
   
   <!-- 图片预览模态框 -->
@@ -1309,12 +1309,8 @@
       window.scrollTo(0, 0);
     }
     
-    // 重新填写勘测表
-    function startNewSurvey() {
-      document.getElementById('successPage').classList.remove('active');
-      document.getElementById('formContainer').style.display = 'block';
-      window.scrollTo(0, 0);
-    }
+    // 标记是否已提交成功，用于拦截返回
+    let hasSubmitted = false;
     
     // 确认提交
     async function confirmSubmit() {
@@ -1348,6 +1344,9 @@
           document.getElementById('formContainer').style.display = 'none';
           document.getElementById('successPage').classList.add('active');
           window.scrollTo(0, 0);
+          // 标记已提交，拦截浏览器返回
+          hasSubmitted = true;
+          history.pushState({ page: 'success' }, '', '');
         } else {
           showToast(result.error || '提交失败 / Submit failed', 'error');
         }
@@ -1399,6 +1398,19 @@
       document.getElementById('formContainer').style.display = 'none';
       document.getElementById('previewPage').classList.add('active');
       window.scrollTo(0, 0);
+    });
+    
+    // 拦截浏览器返回：提交成功后返回则显示失效页面
+    window.addEventListener('popstate', function() {
+      if (hasSubmitted) {
+        // 隐藏所有页面，显示失效页
+        document.getElementById('formContainer').style.display = 'none';
+        document.getElementById('previewPage').classList.remove('active');
+        document.getElementById('successPage').classList.remove('active');
+        document.getElementById('invalidPage').style.display = 'block';
+        // 再 push 一个状态，防止继续返回
+        history.pushState({ page: 'expired' }, '', '');
+      }
     });
     
     checkInviteCode();
