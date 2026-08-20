@@ -415,6 +415,31 @@
       cursor: pointer;
     }
     .btn-new-survey:hover { background: #1557b0; }
+    /* 临时保存按钮 */
+    .btn-save-draft {
+      width: 100%;
+      padding: 12px;
+      background: #fff;
+      color: #1a73e8;
+      border: 1.5px solid #1a73e8;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-save-draft:hover { background: #f0f7ff; }
+    .btn-save-draft:disabled { color: #aaa; border-color: #ddd; cursor: not-allowed; background: #f5f5f5; }
+    .save-status {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      margin-top: 8px;
+      min-height: 18px;
+    }
+    .save-status.saving { color: #1a73e8; }
+    .save-status.saved { color: #2e7d32; }
+    .save-status.error { color: #e53935; }
   </style>
 </head>
 <body>
@@ -424,7 +449,7 @@
     <div class="container">
       <div class="icon">🔒</div>
       <h2>链接无效 / Invalid Link</h2>
-      <p>您访问的链接无效或已失效。<br>The link is invalid or expired.<br>请联系管理员获取有效的专属勘测链接。<br>Please contact admin for a valid survey link.</p>
+      <p>您访问的链接无效或已失效。<br>The link is invalid or expired.<br>请联系管理员获取有效的专属勘测链接。<br>Please contact admin for a valid survey link.<br><br>如管理员已重新启用此链接，请刷新页面 / If admin has re-enabled this link, please refresh the page.</p>
     </div>
   </div>
   <!-- 表单页面 -->
@@ -936,6 +961,8 @@
         <textarea name="remarks" placeholder="其他需要说明的事项 / Other notes（如无请填“无”）"></textarea>
       </div>
       
+      <button type="button" class="btn-save-draft" id="saveDraftBtn" onclick="saveDraft()">临时保存 / Save Draft</button>
+      <div class="save-status" id="saveStatus"></div>
       <button type="submit" id="submitBtn">生成预览 / Generate Preview</button>
     </form>
   </div>
@@ -1311,7 +1338,97 @@
     
     // 标记是否已提交成功，用于拦截返回
     let hasSubmitted = false;
-    
+
+    // 临时保存
+    async function saveDraft() {
+      const saveBtn = document.getElementById('saveDraftBtn');
+      const statusEl = document.getElementById('saveStatus');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中... / Saving...';
+      statusEl.className = 'save-status saving';
+      statusEl.textContent = '正在保存... / Saving...';
+      const data = collectFormData();
+      try {
+        const res = await fetch('/api/save-draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (res.ok) {
+          const timeStr = new Date(result.saved_at).toLocaleString('zh-CN');
+          statusEl.className = 'save-status saved';
+          statusEl.textContent = '上次保存时间 / Last saved: ' + timeStr;
+        } else {
+          statusEl.className = 'save-status error';
+          statusEl.textContent = result.error || '保存失败 / Save failed';
+        }
+      } catch (err) {
+        statusEl.className = 'save-status error';
+        statusEl.textContent = '网络错误，请重试 / Network error, please retry';
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '临时保存 / Save Draft';
+      }
+    }
+
+    // 回填表单数据（重新启用后编辑或草稿恢复）
+    function backfillForm(survey) {
+      if (!survey) return;
+      const fillFields = [
+        'survey_name', 'location', 'main_vehicle_types', 'heating_method',
+        'max_air_pressure', 'max_temperature', 'floor_thickness', 'booth_level',
+        'elevator_dimensions', 'underground_utilities',
+        'cabinet_install_width', 'aux_door_position', 'door_to_front_wall', 'door_width',
+        'lamp_lower_height', 'lamp_upper_height', 'lamp_width',
+        'front_wall_to_lamp', 'lamp_to_lamp_1', 'lamp_to_lamp_2',
+        'air_supply_location', 'power_supply_location',
+        'interior_height', 'light_to_grate_height', 'light_width',
+        'interior_width', 'interior_length',
+        'pit_depth_1', 'pit_depth_2', 'pit_depth_3', 'pit_depth_4', 'pit_depth_5', 'pit_depth_6',
+        'pit_width', 'edge_bar_width',
+        'concrete_pier_length', 'concrete_pier_height',
+        'ramp_length', 'ramp_height', 'remarks'
+      ];
+      fillFields.forEach(f => {
+        const el = form.querySelector('[name="' + f + '"]');
+        if (el && survey[f] != null) {
+          el.value = survey[f];
+        }
+      });
+      // 回填单选按钮并触发条件区域
+      ['elevator', 'lamp', 'pier', 'ramp'].forEach(name => {
+        const field = 'has_' + name;
+        const val = survey[field];
+        if (val) {
+          const radio = form.querySelector('input[name="' + field + '"][value="' + val + '"]');
+          if (radio) {
+            radio.checked = true;
+            toggleSection(name, val === 'yes');
+          }
+        }
+      });
+      // 回填照片
+      if (Array.isArray(survey.photos)) {
+        survey.photos.forEach(p => {
+          const cat = p.category || 'booth';
+          if (photoStore[cat]) {
+            photoStore[cat].push(p.data);
+          }
+        });
+        renderThumbList('booth');
+        renderThumbList('air');
+        renderThumbList('power');
+      }
+      // 显示上次保存时间
+      if (survey.created_at) {
+        const statusEl = document.getElementById('saveStatus');
+        const timeStr = new Date(survey.created_at).toLocaleString('zh-CN');
+        statusEl.className = 'save-status saved';
+        statusEl.textContent = '上次保存时间 / Last saved: ' + timeStr;
+      }
+    }
+
     // 确认提交
     async function confirmSubmit() {
       confirmBtn.disabled = true;
@@ -1374,6 +1491,10 @@
           currentCustomerName = data.customer_name;
           document.getElementById('customerBanner').innerHTML = '客户 / Customer：<strong>' + data.customer_name + '</strong>';
           document.title = '现场喷房勘测 - ' + data.customer_name;
+          // 如有已有记录（草稿或重新启用后的已提交记录），回填表单
+          if (data.survey) {
+            backfillForm(data.survey);
+          }
         } else {
           document.getElementById('invalidPage').style.display = 'block';
         }

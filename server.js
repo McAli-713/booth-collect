@@ -4,7 +4,8 @@ const path = require('path');
 const ExcelJS = require('exceljs');
 const { Resend } = require('resend');
 const {
-  initDB, insertSurvey, getSurveys, getSurveyById, getAllSurveys, deleteSurvey,
+  initDB, insertSurvey, saveDraft, submitSurvey, getSurveys, getSurveyById,
+  getSurveyByCode, getAllSurveys, deleteSurvey,
   createInviteCode, getInviteCodes, verifyInviteCode, deleteInviteCode, toggleInviteCode
 } = require('./db');
 require('dotenv').config();
@@ -74,7 +75,14 @@ app.get('/api/verify-code', async (req, res) => {
     const code = req.query.code;
     const invite = await verifyInviteCode(code);
     if (invite) {
-      res.json({ valid: true, customer_name: invite.customer_name, code: invite.code });
+      // 查询该邀请码是否已有草稿或已提交记录（用于回填）
+      const survey = await getSurveyByCode(code);
+      res.json({
+        valid: true,
+        customer_name: invite.customer_name,
+        code: invite.code,
+        survey: survey || null
+      });
     } else {
       res.json({ valid: false });
     }
@@ -98,12 +106,31 @@ app.post('/api/submit', async (req, res) => {
 
     // 自动填入客户名称
     const data = { ...req.body, customer_name: invite.customer_name };
-    const record = await insertSurvey(data);
-    sendNotification(record);
+    const { record, isFirstSubmission } = await submitSurvey(data);
+    // 仅首次提交发送邮件，重新启用后再次提交不重复发
+    if (isFirstSubmission) {
+      sendNotification(record);
+    }
     res.json({ success: true, message: '提交成功', id: record.id });
   } catch (err) {
     console.error('提交失败:', err);
     res.status(500).json({ error: '提交失败: ' + err.message });
+  }
+});
+
+// 临时保存（草稿）
+app.post('/api/save-draft', async (req, res) => {
+  try {
+    const invite = await verifyInviteCode(req.body.invite_code);
+    if (!invite) {
+      return res.status(403).json({ error: '邀请码无效或已失效' });
+    }
+    const data = { ...req.body, customer_name: invite.customer_name };
+    const record = await saveDraft(data);
+    res.json({ success: true, saved_at: record.created_at, id: record.id });
+  } catch (err) {
+    console.error('临时保存失败:', err);
+    res.status(500).json({ error: '保存失败: ' + err.message });
   }
 });
 
@@ -200,6 +227,7 @@ app.post('/api/invite-codes/:id/toggle', authMiddleware, async (req, res) => {
 // Excel 导出列定义
 const EXPORT_COLUMNS = [
   { header: 'ID', key: 'id', width: 8 },
+  { header: '状态', key: 'status', width: 10 },
   { header: '客户名称', key: 'customer_name', width: 18 },
   { header: '邀请码', key: 'invite_code', width: 12 },
   { header: '勘测名称', key: 'survey_name', width: 20 },

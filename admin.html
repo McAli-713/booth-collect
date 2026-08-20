@@ -425,6 +425,7 @@
                 <th>勘测名称</th>
                 <th>现场地址</th>
                 <th>楼层</th>
+                <th>状态</th>
                 <th>提交时间</th>
                 <th>操作</th>
               </tr>
@@ -455,7 +456,7 @@
                 <th>邀请码</th>
                 <th>客户名称</th>
                 <th>填表链接</th>
-                <th>使用次数</th>
+                <th>保存次数</th>
                 <th>状态</th>
                 <th>创建时间</th>
                 <th>操作</th>
@@ -678,7 +679,7 @@
     function renderTable(records) {
       const tbody = document.getElementById('tableBody');
       if (records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty">暂无数据</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">暂无数据</td></tr>';
         return;
       }
       tbody.innerHTML = records.map(r => `
@@ -689,6 +690,7 @@
           <td>${r.survey_name || '-'}</td>
           <td title="${r.location || ''}">${(r.location || '').slice(0, 25)}${(r.location || '').length > 25 ? '...' : ''}</td>
           <td>${r.booth_level || '-'}</td>
+          <td><span class="badge ${r.status === 'draft' ? 'badge-inactive' : 'badge-active'}">${r.status === 'draft' ? '草稿' : '已提交'}</span></td>
           <td>${new Date(r.created_at).toLocaleString('zh-CN')}</td>
           <td>
             <button class="btn btn-info btn-sm" onclick="viewDetail(${r.id})">详情</button>
