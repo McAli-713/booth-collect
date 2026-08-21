@@ -1225,10 +1225,17 @@
       'ramp_length','ramp_height'
     ]);
     
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(str);
+      return div.innerHTML;
+    }
+    
     function formatValue(key, val) {
       if (!val) return '-';
-      if (MM_FIELDS.has(key)) return val + ' mm';
-      return val;
+      if (MM_FIELDS.has(key)) return escapeHtml(String(val)) + ' mm';
+      return escapeHtml(String(val));
     }
     
     // 生成预览页面
@@ -1323,7 +1330,7 @@
       
       // 备注
       html += '<div class="preview-section"><h3>备注 / Remarks</h3><div class="preview-grid">';
-      html += '<div class="preview-item full"><span class="pv">' + (data.remarks || '无 / None') + '</span></div>';
+      html += '<div class="preview-item full"><span class="pv">' + escapeHtml(data.remarks || '无 / None') + '</span></div>';
       html += '</div></div>';
       
       document.getElementById('previewContent').innerHTML = html;
@@ -1489,7 +1496,9 @@
           document.getElementById('formContainer').style.display = 'block';
           document.getElementById('inviteCode').value = data.code;
           currentCustomerName = data.customer_name;
-          document.getElementById('customerBanner').innerHTML = '客户 / Customer：<strong>' + data.customer_name + '</strong>';
+          const bannerEl = document.getElementById('customerBanner');
+          bannerEl.innerHTML = '客户 / Customer：<strong></strong>';
+          bannerEl.querySelector('strong').textContent = data.customer_name;
           document.title = '现场喷房勘测 - ' + data.customer_name;
           // 如有已有记录（草稿或重新启用后的已提交记录），回填表单
           if (data.survey) {

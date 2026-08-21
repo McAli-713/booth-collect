@@ -4,7 +4,7 @@ require('dotenv').config();
 // Neon 数据库连接
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: true },
   connectionTimeoutMillis: 15000
 });
 // 初始化数据库表

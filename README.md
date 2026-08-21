@@ -62,7 +62,7 @@
    |-----|-------|
    | `DATABASE_URL` | 第一步从 Supabase 复制的连接字符串 |
    | `ADMIN_USERNAME` | 管理后台用户名，默认 `CR001` |
-   | `ADMIN_PASSWORD` | 管理后台密码，默认 `1234` |
+   | `ADMIN_PASSWORD` | **⚠️ 必填，至少 8 位强密码**（无默认值，不设置服务无法启动） |
    | `RESEND_API_KEY` | （可选）Resend API Key，见第三步 |
    | `NOTIFICATION_EMAIL` | （可选）接收通知的邮箱 |
 
