@@ -15,5 +15,3 @@ services:
         sync: false
       - key: NOTIFICATION_EMAIL
         sync: false
-      - key: PORT
-        value: 3000

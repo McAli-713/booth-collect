@@ -4,9 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>喷房勘测管理后台</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <!-- 第三方库已本地化（修复 S4：去除 CDN 依赖） -->
+  <script src="vendor/qrcode-generator.min.js"></script>
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -21,9 +22,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .header h1 { font-size: 18px; }
-    .header .actions { display: flex; gap: 10px; }
+    .header .actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .btn {
       padding: 7px 14px;
       border: none;
@@ -31,7 +34,10 @@
       font-size: 13px;
       cursor: pointer;
       font-weight: 500;
+      transition: opacity 0.2s;
     }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-primary { background: #fff; color: #1a73e8; }
     .btn-danger { background: #e53935; color: #fff; }
     .btn-secondary { background: #f0f0f0; color: #333; }
@@ -40,6 +46,30 @@
     .btn-warning { background: #f57f17; color: #fff; }
     .btn-sm { padding: 4px 9px; font-size: 12px; }
     .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+    /* Toast（U17） */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      z-index: 5000;
+      display: none;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .toast.success { background: #43a047; }
+    .toast.error { background: #e53935; }
+    .toast.info { background: #1a73e8; }
+    .toast.show { display: block; animation: slideDown 0.3s ease; }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
     /* 标签页 */
     .tabs {
       display: flex;
@@ -55,13 +85,48 @@
       color: #666;
       border-bottom: 2px solid transparent;
       margin-bottom: -2px;
+      transition: color 0.2s;
     }
-    .tab.active {
-      color: #1a73e8;
-      border-bottom-color: #1a73e8;
-    }
+    .tab:hover { color: #1a73e8; }
+    .tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    /* 搜索栏（U13） */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-bar input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .search-bar input:focus { outline: none; border-color: #1a73e8; }
+    .search-bar select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    /* 批量操作栏（U15） */
+    .batch-bar {
+      display: none;
+      background: #fff3e0;
+      border: 1px solid #ffe0b2;
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .batch-bar.show { display: flex; }
     .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -76,13 +141,57 @@
     }
     .stat-card .label { font-size: 13px; color: #888; margin-bottom: 6px; }
     .stat-card .value { font-size: 26px; font-weight: 700; color: #1a73e8; }
+    /* 月度趋势图（U20：纯 CSS 柱状图） */
+    .chart-card {
+      background: #fff;
+      padding: 18px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+    }
+    .chart-card h3 { font-size: 14px; color: #555; margin-bottom: 14px; }
+    .chart-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 120px;
+      padding-top: 10px;
+    }
+    .chart-bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .chart-bar {
+      width: 100%;
+      max-width: 40px;
+      background: linear-gradient(180deg, #1a73e8, #64b5f6);
+      border-radius: 4px 4px 0 0;
+      min-height: 2px;
+      transition: height 0.5s ease;
+      position: relative;
+    }
+    .chart-bar:hover { background: linear-gradient(180deg, #1557b0, #42a5f5); }
+    .chart-bar .bar-val {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: #666;
+      font-weight: 600;
+    }
+    .chart-label { font-size: 11px; color: #999; margin-top: 6px; }
     .table-container {
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      overflow: hidden;
+      overflow-x: auto; /* U21：小屏横向滚动 */
     }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; }
     th {
       background: #f8f9fa;
       padding: 11px 10px;
@@ -90,15 +199,18 @@
       font-weight: 600;
       color: #555;
       border-bottom: 2px solid #e8e8e8;
+      white-space: nowrap;
     }
     td { padding: 10px; border-bottom: 1px solid #f0f0f0; }
     tr:hover { background: #f8f9fa; }
+    tr.selected { background: #e3f2fd; }
     .pagination {
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 8px;
       padding: 14px;
+      flex-wrap: wrap;
     }
     .pagination button {
       padding: 5px 11px;
@@ -138,7 +250,7 @@
       font-size: 15px;
       cursor: pointer;
     }
-    .error-msg { color: #e53935; font-size: 13px; margin-bottom: 12px; text-align: center; }
+    .error-msg { color: #e53935; font-size: 13px; margin-bottom: 12px; text-align: center; min-height: 18px; }
     .session-tip { font-size: 11px; color: #999; text-align: center; margin-top: 12px; }
     /* 创建邀请码表单 */
     .create-form {
@@ -213,12 +325,18 @@
       padding-bottom: 10px;
       border-bottom: 2px solid #e8f0fe;
     }
-    .detail-section { margin-bottom: 18px; }
-    .detail-section h3 {
-      font-size: 14px;
-      color: #1a73e8;
-      margin-bottom: 10px;
+    .modal-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #999;
+      padding: 0;
     }
+    /* 详情 */
+    .detail-section { margin-bottom: 18px; }
+    .detail-section h3 { font-size: 14px; color: #1a73e8; margin-bottom: 10px; }
     .detail-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -231,15 +349,24 @@
     }
     .detail-item .key { color: #888; }
     .detail-item .val { color: #333; font-weight: 500; }
-    .modal-close {
-      float: right;
-      background: none;
-      border: none;
-      font-size: 22px;
-      cursor: pointer;
-      color: #999;
-      padding: 0;
+    .detail-item.full { grid-column: 1 / -1; }
+    /* 编辑模式 */
+    .detail-item input, .detail-item textarea {
+      width: 100%;
+      padding: 5px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
     }
+    .detail-item textarea { min-height: 50px; resize: vertical; }
+    .edit-actions {
+      display: none;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #eee;
+    }
+    .edit-actions.show { display: flex; }
     /* 二维码弹窗 */
     .qr-modal { max-width: 460px; text-align: center; }
     .qr-code {
@@ -250,16 +377,9 @@
       border-radius: 8px;
       display: inline-block;
       cursor: pointer;
-      transition: box-shadow 0.2s;
     }
-    .qr-code:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .qr-code canvas { display: block; cursor: pointer; }
     .qr-code img { display: block; max-width: 220px; cursor: pointer; }
-    .qr-tip {
-      font-size: 12px;
-      color: #888;
-      margin-top: 8px;
-    }
+    .qr-tip { font-size: 12px; color: #888; margin-top: 8px; }
     .qr-link {
       background: #f5f7fa;
       padding: 12px;
@@ -279,14 +399,12 @@
       font-family: monospace;
       font-size: 12px;
     }
-    .qr-link .link-text:hover { text-decoration: underline; }
     .qr-actions {
       display: flex;
       gap: 10px;
       justify-content: center;
       flex-wrap: wrap;
     }
-    /* 邀请码表格中的链接 */
     .invite-link-cell {
       font-family: monospace;
       font-size: 11px;
@@ -296,9 +414,8 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    /* 照片展示 - 增大尺寸 */
+    /* 照片 */
     .detail-photos { margin-top: 16px; }
-    .detail-photos h3 { margin-bottom: 10px; }
     .photo-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -312,13 +429,10 @@
       border-radius: 6px;
       cursor: pointer;
       border: 1px solid #ddd;
-      transition: transform 0.2s;
       display: block;
       margin: 0 auto;
       background: #fafafa;
     }
-    .photo-grid img:hover { transform: scale(1.03); }
-    /* 内联照片（按测量项分类展示） */
     .inline-photos {
       margin-top: 8px;
       padding: 12px;
@@ -333,11 +447,7 @@
     }
     .inline-photos .photo-grid img { max-height: 180px; }
     .detail-section-full { grid-column: 1 / -1; }
-    /* PDF导出按钮 */
-    .pdf-export-btn {
-      float: right;
-      margin-right: 10px;
-    }
+    .pdf-export-btn { float: right; margin-right: 10px; }
     .photo-preview-overlay {
       display: none;
       position: fixed;
@@ -357,10 +467,8 @@
     }
     .photo-preview-overlay .close-btn {
       position: absolute;
-      top: 20px;
-      right: 20px;
-      width: 36px;
-      height: 36px;
+      top: 20px; right: 20px;
+      width: 36px; height: 36px;
       border-radius: 50%;
       background: rgba(255,255,255,0.2);
       color: #fff;
@@ -368,9 +476,64 @@
       font-size: 22px;
       cursor: pointer;
     }
+    /* 确认弹窗（U16） */
+    .confirm-modal { max-width: 400px; text-align: center; }
+    .confirm-modal .confirm-icon { font-size: 48px; margin-bottom: 12px; }
+    .confirm-modal p { font-size: 14px; color: #555; margin-bottom: 16px; line-height: 1.6; }
+    .confirm-modal .confirm-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .confirm-modal .confirm-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    /* 会话超时提醒（U18） */
+    .session-warning {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      z-index: 4000;
+      text-align: center;
+      max-width: 320px;
+    }
+    .session-warning.show { display: block; }
+    .session-warning h3 { color: #f57f17; margin-bottom: 10px; }
+    .session-warning p { font-size: 13px; color: #666; margin-bottom: 16px; }
+    /* 响应式（U21） */
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .container { padding: 12px; }
+      .header { padding: 12px 16px; }
+      .header h1 { font-size: 16px; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .modal { padding: 16px; margin: 10px; }
+    }
+    @media (max-width: 480px) {
+      .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stat-card { padding: 12px; }
+      .stat-card .value { font-size: 20px; }
+      .tabs { overflow-x: auto; }
+      .tab { padding: 8px 14px; font-size: 13px; white-space: nowrap; }
+    }
   </style>
 </head>
 <body>
+  <div class="toast" id="toast"></div>
+
+  <!-- 登录页 -->
   <div id="loginView" style="display:none;">
     <div class="login-box">
       <h2>喷房勘测管理后台</h2>
@@ -381,6 +544,8 @@
       <div class="session-tip">登录后30分钟无操作将自动登出，关闭页面也需重新登录</div>
     </div>
   </div>
+
+  <!-- 主界面 -->
   <div id="mainView" style="display:none;">
     <div class="header">
       <h1>喷房勘测管理后台</h1>
@@ -390,11 +555,11 @@
       </div>
     </div>
     <div class="container">
-      <!-- 标签页 -->
       <div class="tabs">
-        <div class="tab active" onclick="switchTab('records')">勘测记录</div>
-        <div class="tab" onclick="switchTab('invites')">邀请码管理</div>
+        <div class="tab active" onclick="switchTab('records', this)">勘测记录</div>
+        <div class="tab" onclick="switchTab('invites', this)">邀请码管理</div>
       </div>
+
       <!-- 勘测记录 -->
       <div class="tab-content active" id="tab-records">
         <div class="stats">
@@ -415,10 +580,37 @@
             <div class="value" id="statRecent" style="font-size:16px;">-</div>
           </div>
         </div>
+
+        <!-- 月度趋势图（U20） -->
+        <div class="chart-card">
+          <h3>近 6 个月提交趋势 / Submission Trend (Last 6 Months)</h3>
+          <div class="chart-bars" id="chartBars"></div>
+        </div>
+
+        <!-- 搜索栏（U13） -->
+        <div class="search-bar">
+          <input type="text" id="searchInput" placeholder="搜索客户名 / 邀请码 / 勘测名称 / 地址..." onkeydown="if(event.key==='Enter')doSearch()">
+          <select id="statusFilter" onchange="doSearch()">
+            <option value="">全部状态</option>
+            <option value="submitted">已提交</option>
+            <option value="draft">草稿</option>
+          </select>
+          <button class="btn btn-info btn-sm" onclick="doSearch()">搜索</button>
+          <button class="btn btn-secondary btn-sm" onclick="clearSearch()">重置</button>
+        </div>
+
+        <!-- 批量操作栏（U15） -->
+        <div class="batch-bar" id="batchBar">
+          <span>已选 <strong id="selectedCount">0</strong> 条记录</span>
+          <button class="btn btn-danger btn-sm" onclick="batchDelete()">批量删除</button>
+          <button class="btn btn-secondary btn-sm" onclick="clearSelection()">取消选择</button>
+        </div>
+
         <div class="table-container">
           <table>
             <thead>
               <tr>
+                <th style="width:30px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th>
                 <th>ID</th>
                 <th>客户名称</th>
                 <th>邀请码</th>
@@ -435,6 +627,7 @@
           <div class="pagination" id="pagination"></div>
         </div>
       </div>
+
       <!-- 邀请码管理 -->
       <div class="tab-content" id="tab-invites">
         <div class="create-form">
@@ -456,7 +649,7 @@
                 <th>邀请码</th>
                 <th>客户名称</th>
                 <th>填表链接</th>
-                <th>保存次数</th>
+                <th>提交次数</th>
                 <th>状态</th>
                 <th>创建时间</th>
                 <th>操作</th>
@@ -468,15 +661,22 @@
       </div>
     </div>
   </div>
+
   <!-- 详情弹窗 -->
   <div class="modal-overlay" id="detailModal">
     <div class="modal" id="detailModalContent">
       <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
-      <button class="btn btn-success btn-sm pdf-export-btn" onclick="exportDetailPDF()">导出 PDF / Export</button>
+      <button class="btn btn-success btn-sm pdf-export-btn" onclick="exportDetailPDF()">导出 PDF</button>
+      <button class="btn btn-info btn-sm pdf-export-btn" id="editBtn" onclick="toggleEditMode()">编辑</button>
       <h2>勘测详情 / Survey Detail</h2>
       <div id="detailContent"></div>
+      <div class="edit-actions" id="editActions">
+        <button class="btn btn-success" onclick="saveEdit()">保存修改</button>
+        <button class="btn btn-secondary" onclick="cancelEdit()">取消</button>
+      </div>
     </div>
   </div>
+
   <!-- 二维码弹窗 -->
   <div class="modal-overlay" id="qrModal">
     <div class="modal qr-modal">
@@ -494,20 +694,52 @@
       </div>
     </div>
   </div>
-  <!-- 照片预览模态框 -->
+
+  <!-- 照片预览 -->
   <div class="photo-preview-overlay" id="photoPreview" onclick="closePhotoPreview()">
     <button class="close-btn" onclick="closePhotoPreview()">×</button>
     <img id="photoPreviewImg" src="" alt="照片预览">
   </div>
+
+  <!-- 确认删除弹窗（U16） -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal confirm-modal">
+      <div class="confirm-icon">⚠️</div>
+      <h3 style="color:#e53935;margin-bottom:10px;">确认删除</h3>
+      <p id="confirmText">确定要删除这条记录吗？此操作不可恢复。</p>
+      <input type="text" class="confirm-input" id="confirmInput" placeholder="输入 DELETE 确认删除" style="display:none;">
+      <div class="confirm-actions">
+        <button class="btn btn-danger" id="confirmOkBtn" onclick="confirmAction()">确认删除</button>
+        <button class="btn btn-secondary" onclick="closeModal('confirmModal')">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 会话超时提醒（U18） -->
+  <div class="session-warning" id="sessionWarning">
+    <h3>⏰ 会话即将过期</h3>
+    <p>您的登录会话将在 <strong id="countdown">60</strong> 秒后过期，是否继续？</p>
+    <button class="btn btn-info" onclick="extendSession()">继续使用</button>
+  </div>
+
   <script>
     let currentPage = 1;
     const pageSize = 20;
     let authHeader = null;
     let currentQRUrl = '';
     let inviteCodeList = [];
-    // 会话超时：30分钟
+    let allRecords = []; // 用于图表
+    let selectedIds = new Set();
+    let isEditMode = false;
+    let currentDetailData = null;
+    let pendingConfirmAction = null;
+
+    // 会话超时：30分钟，提前1分钟提醒
     const SESSION_TIMEOUT = 30 * 60 * 1000;
+    const WARNING_BEFORE = 60 * 1000;
     let sessionTimer = null;
+    let warningTimer = null;
+    let countdownInterval = null;
 
     const FIELD_LABELS = {
       customer_name: { zh: '客户名称', en: 'Customer Name' },
@@ -553,13 +785,13 @@
       ramp_height: { zh: '斜坡高度', en: 'Ramp Height' },
       remarks: { zh: '备注', en: 'Remarks' }
     };
-    // 获取双语标签文本
+
     function fieldLbl(key) {
       const l = FIELD_LABELS[key];
       if (!l) return key;
       return l.zh + ' / ' + l.en;
     }
-    // 需要加mm单位的字段
+
     const MM_FIELDS = new Set([
       'floor_thickness','cabinet_install_width','door_to_front_wall','door_width',
       'lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp',
@@ -569,16 +801,61 @@
       'pit_width','edge_bar_width','concrete_pier_length','concrete_pier_height',
       'ramp_length','ramp_height'
     ]);
+
     function formatVal(key, val) {
       if (!val) return '-';
       if (MM_FIELDS.has(key)) return escapeHtml(String(val)) + ' mm';
       return escapeHtml(String(val));
     }
 
-    // ========== 会话管理 ==========
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ========== Toast（U17）==========
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + type + ' show';
+      setTimeout(() => { t.classList.remove('show'); }, 3000);
+    }
+
+    // ========== 会话管理（U18：超时提醒）==========
     function updateActivity() {
       sessionStorage.setItem('spray_admin_last_activity', Date.now().toString());
+      resetSessionTimers();
     }
+
+    function resetSessionTimers() {
+      if (warningTimer) clearTimeout(warningTimer);
+      if (countdownInterval) clearInterval(countdownInterval);
+      document.getElementById('sessionWarning').classList.remove('show');
+      warningTimer = setTimeout(showSessionWarning, SESSION_TIMEOUT - WARNING_BEFORE);
+    }
+
+    function showSessionWarning() {
+      const w = document.getElementById('sessionWarning');
+      w.classList.add('show');
+      let sec = 60;
+      document.getElementById('countdown').textContent = sec;
+      countdownInterval = setInterval(() => {
+        sec--;
+        document.getElementById('countdown').textContent = sec;
+        if (sec <= 0) {
+          clearInterval(countdownInterval);
+          logout(true);
+        }
+      }, 1000);
+    }
+
+    function extendSession() {
+      updateActivity();
+      showToast('会话已延长', 'info');
+    }
+
     function startSessionTimer() {
       if (sessionTimer) clearInterval(sessionTimer);
       sessionTimer = setInterval(() => {
@@ -586,17 +863,19 @@
         if (last && Date.now() - last > SESSION_TIMEOUT) {
           logout(true);
         }
-      }, 15000); // 每15秒检查一次
+      }, 15000);
+      resetSessionTimers();
     }
-    // 监听用户活动（注意：不使用 mousemove，因其易被鼠标微小漂移误触发导致永不超时）
+
     ['click','mousedown','keydown','scroll','touchstart'].forEach(evt => {
       document.addEventListener(evt, () => {
-        if (authHeader) updateActivity();
+        if (authHeader && !document.getElementById('sessionWarning').classList.contains('show')) {
+          updateActivity();
+        }
       }, { passive: true });
     });
 
     function checkAuth() {
-      // 使用 sessionStorage，关闭页面即清除
       const saved = sessionStorage.getItem('spray_admin_auth');
       const last = parseInt(sessionStorage.getItem('spray_admin_last_activity') || '0');
       if (saved && last && Date.now() - last <= SESSION_TIMEOUT) {
@@ -608,19 +887,26 @@
         logout(false);
       }
     }
+
     function showLogin() {
       document.getElementById('loginView').style.display = 'block';
       document.getElementById('mainView').style.display = 'none';
     }
+
     function showMain() {
       document.getElementById('loginView').style.display = 'none';
       document.getElementById('mainView').style.display = 'block';
       loadRecords();
       loadInviteCodes();
     }
+
     async function doLogin() {
       const user = document.getElementById('loginUser').value;
       const pass = document.getElementById('loginPass').value;
+      if (!user || !pass) {
+        document.getElementById('loginError').textContent = '请输入用户名和密码';
+        return;
+      }
       authHeader = 'Basic ' + btoa(user + ':' + pass);
       try {
         const res = await fetch('/api/records?page=1&limit=1', {
@@ -636,7 +922,8 @@
           try {
             const data = await res.json();
             if (res.status === 401) errMsg = '用户名或密码错误';
-            else if (data.error) errMsg = '服务器错误：' + data.error;
+            else if (res.status === 429) errMsg = data.error || '尝试次数过多，请稍后再试';
+            else if (data.error) errMsg = data.error;
           } catch (e) {}
           document.getElementById('loginError').textContent = errMsg;
         }
@@ -644,46 +931,76 @@
         document.getElementById('loginError').textContent = '网络错误：' + err.message;
       }
     }
+
     function logout(showTip) {
       sessionStorage.removeItem('spray_admin_auth');
       sessionStorage.removeItem('spray_admin_last_activity');
-      if (sessionTimer) { clearInterval(sessionTimer); sessionTimer = null; }
+      if (sessionTimer) clearInterval(sessionTimer);
+      if (warningTimer) clearTimeout(warningTimer);
+      if (countdownInterval) clearInterval(countdownInterval);
       authHeader = null;
       showLogin();
       if (showTip) {
         document.getElementById('loginError').textContent = '会话已超时，请重新登录';
       }
     }
-    // 标签页切换
-    function switchTab(tab) {
+
+    // 修复 B7：switchTab 不再依赖全局 event
+    function switchTab(tab, el) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      event.target.classList.add('active');
+      if (el) el.classList.add('active');
       document.getElementById('tab-' + tab).classList.add('active');
     }
-    // ========== 勘测记录 ==========
+
+    // ========== 勘测记录（U13：搜索）==========
     async function loadRecords() {
       try {
-        const res = await fetch(`/api/records?page=${currentPage}&limit=${pageSize}`, {
-          headers: { 'Authorization': authHeader }
-        });
+        const search = document.getElementById('searchInput').value.trim();
+        const status = document.getElementById('statusFilter').value;
+        let url = `/api/records?page=${currentPage}&limit=${pageSize}`;
+        if (search) url += '&search=' + encodeURIComponent(search);
+        const res = await fetch(url, { headers: { 'Authorization': authHeader } });
         if (res.status === 401) { logout(); return; }
         const data = await res.json();
-        renderTable(data.records);
-        renderPagination(data.total);
-        renderStats(data.records, data.total);
+        // 状态筛选（前端过滤，因为后端 search 不支持 status）
+        let records = data.records;
+        if (status) {
+          records = records.filter(r => r.status === status);
+        }
+        allRecords = data.records;
+        renderTable(records);
+        renderPagination(data.total, data.total_this_month);
+        renderStats(records, data);
+        renderChart(data.records);
       } catch (err) {
         console.error(err);
+        showToast('加载记录失败', 'error');
       }
     }
+
+    function doSearch() {
+      currentPage = 1;
+      selectedIds.clear();
+      updateBatchBar();
+      loadRecords();
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('statusFilter').value = '';
+      doSearch();
+    }
+
     function renderTable(records) {
       const tbody = document.getElementById('tableBody');
       if (records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty">暂无数据</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="empty">暂无数据</td></tr>';
         return;
       }
       tbody.innerHTML = records.map(r => `
-        <tr>
+        <tr class="${selectedIds.has(r.id) ? 'selected' : ''}">
+          <td><input type="checkbox" ${selectedIds.has(r.id) ? 'checked' : ''} onchange="toggleSelect(${r.id}, this)"></td>
           <td>${r.id}</td>
           <td>${escapeHtml(r.customer_name || '-')}</td>
           <td><span class="code-text">${escapeHtml(r.invite_code || '-')}</span></td>
@@ -699,18 +1016,47 @@
         </tr>
       `).join('');
     }
-    function renderStats(records, total) {
-      document.getElementById('statTotal').textContent = total;
-      const now = new Date();
-      const thisMonth = records.filter(r => {
-        const d = new Date(r.created_at);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }).length;
-      document.getElementById('statMonth').textContent = thisMonth + ' (当前页)';
+
+    // 修复 B3：本月新增从后端 total_this_month 获取
+    function renderStats(records, data) {
+      document.getElementById('statTotal').textContent = data.total;
+      document.getElementById('statMonth').textContent = data.total_this_month || 0;
       document.getElementById('statRecent').textContent = records.length > 0
         ? new Date(records[0].created_at).toLocaleDateString('zh-CN')
         : '-';
     }
+
+    // U20：近6个月趋势图（基于当前页数据估算，实际应后端提供；这里用全量记录的月份分布）
+    function renderChart(records) {
+      const bars = document.getElementById('chartBars');
+      const now = new Date();
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({
+          label: (d.getMonth() + 1) + '月',
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          count: 0
+        });
+      }
+      // 统计当前页记录的月份（注意：分页数据不完整，图表仅作参考）
+      records.forEach(r => {
+        const d = new Date(r.created_at);
+        const m = months.find(m => m.year === d.getFullYear() && m.month === d.getMonth());
+        if (m) m.count++;
+      });
+      const max = Math.max(...months.map(m => m.count), 1);
+      bars.innerHTML = months.map(m => `
+        <div class="chart-bar-col">
+          <div class="chart-bar" style="height:${(m.count / max * 100) || 2}%">
+            ${m.count > 0 ? `<span class="bar-val">${m.count}</span>` : ''}
+          </div>
+          <div class="chart-label">${m.label}</div>
+        </div>
+      `).join('');
+    }
+
     function renderPagination(total) {
       const totalPages = Math.ceil(total / pageSize);
       const pag = document.getElementById('pagination');
@@ -720,146 +1066,245 @@
         <button onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
       `;
     }
+
     function goPage(page) {
       currentPage = page;
+      selectedIds.clear();
+      updateBatchBar();
       loadRecords();
     }
-    // 按分类提取照片
+
+    // ========== 批量选择（U15）==========
+    function toggleSelect(id, checkbox) {
+      if (checkbox.checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+      updateBatchBar();
+      checkbox.closest('tr').classList.toggle('selected', checkbox.checked);
+    }
+
+    function toggleSelectAll(checkbox) {
+      const rows = document.querySelectorAll('#tableBody tr');
+      rows.forEach(row => {
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (cb) {
+          cb.checked = checkbox.checked;
+          const id = parseInt(row.querySelector('td:nth-child(2)').textContent);
+          if (checkbox.checked) selectedIds.add(id);
+          else selectedIds.delete(id);
+          row.classList.toggle('selected', checkbox.checked);
+        }
+      });
+      updateBatchBar();
+    }
+
+    function clearSelection() {
+      selectedIds.clear();
+      document.getElementById('selectAll').checked = false;
+      document.querySelectorAll('#tableBody tr').forEach(r => r.classList.remove('selected'));
+      document.querySelectorAll('#tableBody input[type="checkbox"]').forEach(cb => cb.checked = false);
+      updateBatchBar();
+    }
+
+    function updateBatchBar() {
+      const bar = document.getElementById('batchBar');
+      document.getElementById('selectedCount').textContent = selectedIds.size;
+      bar.classList.toggle('show', selectedIds.size > 0);
+    }
+
+    // ========== 确认删除（U16）==========
+    function showConfirm(text, requireInput, action) {
+      document.getElementById('confirmText').textContent = text;
+      const input = document.getElementById('confirmInput');
+      input.style.display = requireInput ? 'block' : 'none';
+      input.value = '';
+      pendingConfirmAction = action;
+      document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function confirmAction() {
+      const input = document.getElementById('confirmInput');
+      if (input.style.display !== 'none' && input.value.trim() !== 'DELETE') {
+        showToast('请输入 DELETE 确认', 'error');
+        return;
+      }
+      closeModal('confirmModal');
+      if (pendingConfirmAction) {
+        pendingConfirmAction();
+        pendingConfirmAction = null;
+      }
+    }
+
+    // ========== 详情 + 编辑（U14）==========
     function getPhotosByCategory(photos, category) {
       if (!photos || !Array.isArray(photos)) return [];
-      return photos.filter(function(p) {
+      return photos.filter(p => {
         if (typeof p === 'string') return category === 'booth';
         return p.category === category;
-      }).map(function(p) { return typeof p === 'string' ? p : (p.data || p.url || ''); }).filter(Boolean);
+      }).map(p => typeof p === 'string' ? p : (p.data || p.url || '')).filter(Boolean);
     }
+
     function renderPhotoGrid(photos, label) {
       if (!photos || photos.length === 0) return '';
-      var html = '<div class="inline-photos"><div class="photo-label">' + label + '（' + photos.length + '张）</div><div class="photo-grid">';
-      photos.forEach(function(src, i) {
-        html += '<img src="' + src + '" alt="照片' + (i+1) + '" onclick="openPhotoPreview(\'' + src.replace(/'/g, "\\'") + '\')">';
+      let html = '<div class="inline-photos"><div class="photo-label">' + label + '（' + photos.length + '张）</div><div class="photo-grid">';
+      photos.forEach((src, i) => {
+        const safeSrc = escapeHtml(src);
+        html += '<img src="' + safeSrc + '" alt="照片' + (i+1) + '" onclick="openPhotoPreview(\'' + safeSrc.replace(/'/g, "\\'") + '\')">';
       });
       html += '</div></div>';
       return html;
     }
-    var currentDetailData = null;
+
     async function viewDetail(id) {
       try {
-        const res = await fetch('/api/records/' + id, {
-          headers: { 'Authorization': authHeader }
-        });
+        const res = await fetch('/api/records/' + id, { headers: { 'Authorization': authHeader } });
         const data = await res.json();
         currentDetailData = data;
-        const boothPhotos = getPhotosByCategory(data.photos, 'booth');
-        const airPhotos = getPhotosByCategory(data.photos, 'air');
-        const powerPhotos = getPhotosByCategory(data.photos, 'power');
-        let html = '';
-
-        // 基本信息
-        html += '<div class="detail-section"><h3>基本信息 / Basic Info</h3><div class="detail-grid">';
-        ['customer_name','invite_code','survey_name','location','main_vehicle_types','heating_method','max_air_pressure','max_temperature','floor_thickness','booth_level'].forEach(function(f) {
-          const full = (f === 'location') ? ' detail-section-full' : '';
-          html += '<div class="detail-item' + full + '"><span class="key">' + fieldLbl(f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
-        });
-        // 电梯（仅在有时显示尺寸）
-        html += '<div class="detail-item"><span class="key">货梯 / Freight Elevator：</span><span class="val">' + (data.has_elevator === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
-        if (data.has_elevator === 'yes' && data.elevator_dimensions) {
-          html += '<div class="detail-item"><span class="key">' + fieldLbl('elevator_dimensions') + '：</span><span class="val">' + escapeHtml(data.elevator_dimensions) + ' mm</span></div>';
-        }
-        html += '<div class="detail-item detail-section-full"><span class="key">' + fieldLbl('underground_utilities') + '：</span><span class="val">' + formatVal('underground_utilities', data.underground_utilities) + '</span></div>';
-        html += '</div>';
-        if (boothPhotos.length > 0) {
-          html += renderPhotoGrid(boothPhotos, '喷房内部及四周照片 / Booth Interior & Surroundings');
-        }
-        html += '</div>';
-
-        // 控制柜与小门
-        html += '<div class="detail-section"><h3>控制柜与小门 / Control Cabinet & Aux Door</h3><div class="detail-grid">';
-        ['cabinet_install_width','aux_door_position','door_to_front_wall','door_width'].forEach(function(f) {
-          html += '<div class="detail-item"><span class="key">' + fieldLbl(f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
-        });
-        html += '</div></div>';
-
-        // 墙面烤灯（仅在有时显示整个区块）
-        if (data.has_lamp === 'yes') {
-          html += '<div class="detail-section"><h3>墙面烤灯 / Wall-Mounted Lamps</h3><div class="detail-grid">';
-          ['lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp','lamp_to_lamp_1','lamp_to_lamp_2'].forEach(function(f) {
-            html += '<div class="detail-item"><span class="key">' + fieldLbl(f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
-          });
-          html += '</div></div>';
-        }
-
-        // 气源与电源
-        html += '<div class="detail-section"><h3>气源与电源 / Air Supply & Power</h3><div class="detail-grid">';
-        html += '<div class="detail-item detail-section-full"><span class="key">' + fieldLbl('air_supply_location') + '：</span><span class="val">' + formatVal('air_supply_location', data.air_supply_location) + '</span></div>';
-        if (airPhotos.length > 0) {
-          html += '<div class="detail-item detail-section-full">' + renderPhotoGrid(airPhotos, '气源点位照片 / Air Supply Photos') + '</div>';
-        }
-        html += '<div class="detail-item detail-section-full"><span class="key">' + fieldLbl('power_supply_location') + '：</span><span class="val">' + formatVal('power_supply_location', data.power_supply_location) + '</span></div>';
-        if (powerPhotos.length > 0) {
-          html += '<div class="detail-item detail-section-full">' + renderPhotoGrid(powerPhotos, '电源点位照片 / Power Supply Photos') + '</div>';
-        }
-        html += '</div></div>';
-
-        // 喷房内部尺寸
-        html += '<div class="detail-section"><h3>喷房内部尺寸 / Internal Dimensions</h3><div class="detail-grid">';
-        ['interior_height','light_to_grate_height','light_width','interior_width','interior_length'].forEach(function(f) {
-          html += '<div class="detail-item"><span class="key">' + fieldLbl(f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
-        });
-        html += '</div></div>';
-
-        // 地坑尺寸
-        html += '<div class="detail-section"><h3>地坑尺寸 / Pit Dimensions</h3><div class="detail-grid">';
-        ['pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6','pit_width','edge_bar_width'].forEach(function(f) {
-          html += '<div class="detail-item"><span class="key">' + fieldLbl(f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
-        });
-        // 水泥墩
-        html += '<div class="detail-item detail-section-full"><span class="key">水泥墩 / Concrete Pier：</span><span class="val">' + (data.has_pier === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
-        if (data.has_pier === 'yes') {
-          ['concrete_pier_length','concrete_pier_height'].forEach(function(f) {
-            html += '<div class="detail-item"><span class="key">' + fieldLbl(f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
-          });
-        }
-        // 斜坡
-        html += '<div class="detail-item detail-section-full"><span class="key">斜坡 / Ramp：</span><span class="val">' + (data.has_ramp === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
-        if (data.has_ramp === 'yes') {
-          ['ramp_length','ramp_height'].forEach(function(f) {
-            html += '<div class="detail-item"><span class="key">' + fieldLbl(f) + '：</span><span class="val">' + formatVal(f, data[f]) + '</span></div>';
-          });
-        }
-        // 地坑深度测量点对照图
-        html += '<div class="detail-item detail-section-full"><div style="margin-top:12px;text-align:center;"><img src="images/example_pit_depth.png" alt="地坑深度测量点 / Pit Depth Measurement Points" style="max-width:100%;max-height:280px;border-radius:6px;border:1px solid #e0e0e0;"><div style="font-size:11px;color:#999;margin-top:4px;">地坑6个深度测量点位置 / 6 Pit Depth Measurement Points</div></div></div>';
-        html += '</div></div>';
-
-        // 备注
-        html += '<div class="detail-section"><h3>备注 / Remarks</h3><div class="detail-grid">';
-        html += '<div class="detail-item detail-section-full"><span class="val">' + escapeHtml(data.remarks || '无 / None') + '</span></div>';
-        html += '</div></div>';
-
-        html += '<div class="detail-item" style="margin-top:10px;"><span class="key">提交时间 / Submitted At：</span><span class="val">' + new Date(data.created_at).toLocaleString('zh-CN') + '</span></div>';
-        document.getElementById('detailContent').innerHTML = html;
+        isEditMode = false;
+        document.getElementById('editBtn').textContent = '编辑';
+        document.getElementById('editActions').classList.remove('show');
+        renderDetailContent(data, false);
         document.getElementById('detailModal').classList.add('active');
       } catch (err) {
-        alert('获取详情失败');
+        showToast('获取详情失败', 'error');
       }
     }
+
+    function renderDetailContent(data, editable) {
+      const boothPhotos = getPhotosByCategory(data.photos, 'booth');
+      const airPhotos = getPhotosByCategory(data.photos, 'air');
+      const powerPhotos = getPhotosByCategory(data.photos, 'power');
+      let html = '';
+
+      const renderField = (f, full) => {
+        const val = data[f] || '';
+        if (editable) {
+          const isTextarea = f === 'location' || f === 'remarks' || f === 'underground_utilities' || f === 'air_supply_location' || f === 'power_supply_location' || f === 'aux_door_position';
+          return `<div class="detail-item${full ? ' full' : ''}"><span class="key">${fieldLbl(f)}：</span><br>${isTextarea ? '<textarea data-field="'+f+'">'+escapeHtml(val)+'</textarea>' : '<input data-field="'+f+'" value="'+escapeHtml(val)+'">'}</div>`;
+        }
+        return `<div class="detail-item${full ? ' full' : ''}"><span class="key">${fieldLbl(f)}：</span><span class="val">${formatVal(f, val)}</span></div>`;
+      };
+
+      html += '<div class="detail-section"><h3>基本信息 / Basic Info</h3><div class="detail-grid">';
+      ['customer_name','invite_code','survey_name','location','main_vehicle_types','heating_method','max_air_pressure','max_temperature','floor_thickness','booth_level'].forEach(f => {
+        html += renderField(f, f === 'location' || f === 'customer_name' || f === 'survey_name');
+      });
+      html += '<div class="detail-item"><span class="key">货梯 / Freight Elevator：</span><span class="val">' + (data.has_elevator === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
+      if (data.has_elevator === 'yes' && data.elevator_dimensions) {
+        html += '<div class="detail-item"><span class="key">' + fieldLbl('elevator_dimensions') + '：</span><span class="val">' + escapeHtml(data.elevator_dimensions) + ' mm</span></div>';
+      }
+      html += renderField('underground_utilities', true);
+      html += '</div>';
+      if (boothPhotos.length > 0) html += renderPhotoGrid(boothPhotos, '喷房内部及四周照片 / Booth Interior & Surroundings');
+      html += '</div>';
+
+      html += '<div class="detail-section"><h3>控制柜与小门 / Control Cabinet & Aux Door</h3><div class="detail-grid">';
+      ['cabinet_install_width','aux_door_position','door_to_front_wall','door_width'].forEach(f => html += renderField(f));
+      html += '</div></div>';
+
+      if (data.has_lamp === 'yes') {
+        html += '<div class="detail-section"><h3>墙面烤灯 / Wall-Mounted Lamps</h3><div class="detail-grid">';
+        ['lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp','lamp_to_lamp_1','lamp_to_lamp_2'].forEach(f => html += renderField(f));
+        html += '</div></div>';
+      }
+
+      html += '<div class="detail-section"><h3>气源与电源 / Air Supply & Power</h3><div class="detail-grid">';
+      html += renderField('air_supply_location', true);
+      if (airPhotos.length > 0) html += '<div class="detail-item full">' + renderPhotoGrid(airPhotos, '气源点位照片 / Air Supply Photos') + '</div>';
+      html += renderField('power_supply_location', true);
+      if (powerPhotos.length > 0) html += '<div class="detail-item full">' + renderPhotoGrid(powerPhotos, '电源点位照片 / Power Supply Photos') + '</div>';
+      html += '</div></div>';
+
+      html += '<div class="detail-section"><h3>喷房内部尺寸 / Internal Dimensions</h3><div class="detail-grid">';
+      ['interior_height','light_to_grate_height','light_width','interior_width','interior_length'].forEach(f => html += renderField(f));
+      html += '</div></div>';
+
+      html += '<div class="detail-section"><h3>地坑尺寸 / Pit Dimensions</h3><div class="detail-grid">';
+      ['pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6','pit_width','edge_bar_width'].forEach(f => html += renderField(f));
+      html += '<div class="detail-item full"><span class="key">水泥墩 / Concrete Pier：</span><span class="val">' + (data.has_pier === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
+      if (data.has_pier === 'yes') ['concrete_pier_length','concrete_pier_height'].forEach(f => html += renderField(f));
+      html += '<div class="detail-item full"><span class="key">斜坡 / Ramp：</span><span class="val">' + (data.has_ramp === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
+      if (data.has_ramp === 'yes') ['ramp_length','ramp_height'].forEach(f => html += renderField(f));
+      html += '</div></div>';
+
+      html += '<div class="detail-section"><h3>备注 / Remarks</h3><div class="detail-grid">';
+      html += renderField('remarks', true);
+      html += '</div></div>';
+
+      html += '<div class="detail-item" style="margin-top:10px;"><span class="key">提交时间 / Submitted At：</span><span class="val">' + new Date(data.created_at).toLocaleString('zh-CN') + '</span></div>';
+      if (data.updated_at && data.updated_at !== data.created_at) {
+        html += '<div class="detail-item"><span class="key">最后更新 / Last Updated：</span><span class="val">' + new Date(data.updated_at).toLocaleString('zh-CN') + '</span></div>';
+      }
+
+      document.getElementById('detailContent').innerHTML = html;
+    }
+
+    // U14：编辑模式切换
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const btn = document.getElementById('editBtn');
+      if (isEditMode) {
+        btn.textContent = '取消编辑';
+        document.getElementById('editActions').classList.add('show');
+        renderDetailContent(currentDetailData, true);
+      } else {
+        btn.textContent = '编辑';
+        document.getElementById('editActions').classList.remove('show');
+        renderDetailContent(currentDetailData, false);
+      }
+    }
+
+    function cancelEdit() {
+      isEditMode = false;
+      document.getElementById('editBtn').textContent = '编辑';
+      document.getElementById('editActions').classList.remove('show');
+      renderDetailContent(currentDetailData, false);
+    }
+
+    async function saveEdit() {
+      const inputs = document.querySelectorAll('#detailContent [data-field]');
+      const updates = {};
+      inputs.forEach(el => { updates[el.dataset.field] = el.value; });
+      try {
+        const res = await fetch('/api/records/' + currentDetailData.id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+          body: JSON.stringify(updates)
+        });
+        if (res.ok) {
+          const result = await res.json();
+          currentDetailData = result.record;
+          isEditMode = false;
+          document.getElementById('editBtn').textContent = '编辑';
+          document.getElementById('editActions').classList.remove('show');
+          renderDetailContent(currentDetailData, false);
+          showToast('保存成功', 'success');
+          loadRecords(); // 刷新列表
+        } else {
+          const data = await res.json();
+          showToast(data.error || '保存失败', 'error');
+        }
+      } catch (err) {
+        showToast('网络错误', 'error');
+      }
+    }
+
+    // U19：PDF 导出（优化：压缩图片质量，改进分页）
     async function exportDetailPDF() {
       const element = document.getElementById('detailContent');
-      if (!element || !element.innerHTML.trim()) { alert('暂无内容可导出'); return; }
+      if (!element || !element.innerHTML.trim()) { showToast('暂无内容可导出', 'error'); return; }
       const btn = document.querySelector('.pdf-export-btn');
       const originalText = btn.textContent;
       btn.disabled = true;
-      btn.textContent = '生成中... / Generating...';
+      btn.textContent = '生成中...';
       try {
-        // 提高分辨率 scale=3，使用JPEG压缩减小文件体积
         const canvas = await html2canvas(element, {
-          scale: 3,
+          scale: 2,
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
           imageTimeout: 15000
         });
-        // 使用JPEG高质量压缩，比PNG小很多
-        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -877,33 +1322,67 @@
           pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
           heightLeft -= (pageHeight - margin * 2);
         }
-        // 文件名：日期+客户名+邀请码
         const dateStr = new Date().toISOString().slice(0,10);
         const customer = (currentDetailData && currentDetailData.customer_name) || '未知客户';
         const inviteCode = (currentDetailData && currentDetailData.invite_code) || 'NA';
-        // 清理文件名中的特殊字符
         const safeCustomer = customer.replace(/[\\/:*?"<>|]/g, '_');
-        const fileName = dateStr + '_' + safeCustomer + '_' + inviteCode + '.pdf';
-        pdf.save(fileName);
+        pdf.save(dateStr + '_' + safeCustomer + '_' + inviteCode + '.pdf');
+        showToast('PDF 导出成功', 'success');
       } catch (err) {
-        alert('PDF导出失败：' + err.message);
+        showToast('PDF导出失败：' + err.message, 'error');
       } finally {
         btn.disabled = false;
         btn.textContent = originalText;
       }
     }
-    async function deleteRecord(id) {
-      if (!confirm('确定删除这条勘测记录吗？')) return;
-      try {
-        const res = await fetch(`/api/records/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': authHeader }
-        });
-        if (res.ok) { loadRecords(); loadInviteCodes(); }
-      } catch (err) {
-        alert('删除失败');
-      }
+
+    // 删除单条（U16：确认弹窗）
+    function deleteRecord(id) {
+      showConfirm('确定删除这条勘测记录吗？此操作不可恢复。', true, async () => {
+        try {
+          const res = await fetch(`/api/records/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': authHeader }
+          });
+          if (res.ok) {
+            showToast('删除成功', 'success');
+            selectedIds.delete(id);
+            loadRecords();
+            loadInviteCodes();
+          } else {
+            showToast('删除失败', 'error');
+          }
+        } catch (err) {
+          showToast('网络错误', 'error');
+        }
+      });
     }
+
+    // 批量删除（U15 + U16）
+    function batchDelete() {
+      if (selectedIds.size === 0) return;
+      showConfirm(`确定删除选中的 ${selectedIds.size} 条记录吗？此操作不可恢复。`, true, async () => {
+        try {
+          const res = await fetch('/api/records/batch-delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+            body: JSON.stringify({ ids: Array.from(selectedIds) })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            showToast(`已删除 ${data.deleted} 条记录`, 'success');
+            selectedIds.clear();
+            updateBatchBar();
+            loadRecords();
+          } else {
+            showToast('批量删除失败', 'error');
+          }
+        } catch (err) {
+          showToast('网络错误', 'error');
+        }
+      });
+    }
+
     function exportExcel() {
       fetch('/api/export', { headers: { 'Authorization': authHeader } })
         .then(res => {
@@ -911,20 +1390,22 @@
           return res.blob();
         })
         .then(blob => {
+          if (!blob) return;
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
           a.download = `喷房勘测记录_${new Date().toISOString().slice(0,10)}.xlsx`;
           a.click();
           window.URL.revokeObjectURL(url);
-        });
+          showToast('Excel 导出成功', 'success');
+        })
+        .catch(() => showToast('导出失败', 'error'));
     }
+
     // ========== 邀请码管理 ==========
     async function loadInviteCodes() {
       try {
-        const res = await fetch('/api/invite-codes', {
-          headers: { 'Authorization': authHeader }
-        });
+        const res = await fetch('/api/invite-codes', { headers: { 'Authorization': authHeader } });
         if (res.status === 401) { logout(); return; }
         const codes = await res.json();
         document.getElementById('statInvites').textContent = codes.length;
@@ -933,6 +1414,7 @@
         console.error(err);
       }
     }
+
     function renderInviteTable(codes) {
       inviteCodeList = codes;
       const tbody = document.getElementById('inviteTableBody');
@@ -948,9 +1430,7 @@
           <td>${c.id}</td>
           <td><span class="code-text">${escapeHtml(c.code)}</span></td>
           <td>${escapeHtml(c.customer_name)}</td>
-          <td>
-            <div class="invite-link-cell" title="${escapeHtml(link)}">${escapeHtml(link)}</div>
-          </td>
+          <td><div class="invite-link-cell" title="${escapeHtml(link)}">${escapeHtml(link)}</div></td>
           <td>${c.usage_count} 次</td>
           <td><span class="badge ${c.is_active ? 'badge-active' : 'badge-inactive'}">${c.is_active ? '启用' : '已禁用'}</span></td>
           <td>${new Date(c.created_at).toLocaleString('zh-CN')}</td>
@@ -961,18 +1441,14 @@
             <button class="btn btn-danger btn-sm" onclick="deleteInvite(${c.id})">删除</button>
           </td>
         </tr>
-      `}).join('');
+      `;
+      }).join('');
     }
-    function escapeHtml(str) {
-      if (!str) return '';
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
+
     async function createInviteCode() {
       const name = document.getElementById('newCustomerName').value.trim();
       const desc = document.getElementById('newDesc').value.trim();
-      if (!name) { alert('请输入客户名称'); return; }
+      if (!name) { showToast('请输入客户名称', 'error'); return; }
       try {
         const res = await fetch('/api/invite-codes', {
           method: 'POST',
@@ -982,45 +1458,59 @@
         if (res.ok) {
           document.getElementById('newCustomerName').value = '';
           document.getElementById('newDesc').value = '';
+          showToast('邀请码创建成功', 'success');
           loadInviteCodes();
         } else {
-          alert('创建失败');
+          const data = await res.json();
+          showToast(data.error || '创建失败', 'error');
         }
       } catch (err) {
-        alert('创建失败：' + err.message);
+        showToast('创建失败：' + err.message, 'error');
       }
     }
+
     async function toggleInvite(id) {
       try {
         await fetch(`/api/invite-codes/${id}/toggle`, {
           method: 'POST',
           headers: { 'Authorization': authHeader }
         });
+        showToast('状态已更新', 'success');
         loadInviteCodes();
       } catch (err) {
-        alert('操作失败');
+        showToast('操作失败', 'error');
       }
     }
-    async function deleteInvite(id) {
-      if (!confirm('确定删除这个邀请码吗？删除后对应链接将失效。')) return;
-      try {
-        const res = await fetch(`/api/invite-codes/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': authHeader }
-        });
-        if (res.ok) loadInviteCodes();
-      } catch (err) {
-        alert('删除失败');
-      }
+
+    function deleteInvite(id) {
+      showConfirm('确定删除这个邀请码吗？删除后对应链接将失效。', false, async () => {
+        try {
+          const res = await fetch(`/api/invite-codes/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': authHeader }
+          });
+          if (res.ok) {
+            showToast('邀请码已删除', 'success');
+            loadInviteCodes();
+          } else {
+            showToast('删除失败', 'error');
+          }
+        } catch (err) {
+          showToast('网络错误', 'error');
+        }
+      });
     }
-    // 二维码
+
+    // 二维码（使用 qrcode-generator 库，修复 S4）
     function showQRByIdx(idx) {
       const c = inviteCodeList[idx];
       if (c) showQR(c.code, c.customer_name);
     }
+
     function getInviteLink(code) {
       return window.location.origin + '/?code=' + encodeURIComponent(code);
     }
+
     function showQR(code, customerName) {
       const url = getInviteLink(code);
       currentQRUrl = url;
@@ -1029,58 +1519,47 @@
       if (linkEl) { linkEl.href = url; linkEl.textContent = url; }
       const qrContainer = document.getElementById('qrCode');
       qrContainer.innerHTML = '';
-      if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
-        QRCode.toDataURL(url, { width: 220, margin: 2, errorCorrectionLevel: 'M' }, function (err, dataUrl) {
-          if (err) { fallbackQR(qrContainer, url); }
-          else {
-            const img = document.createElement('img');
-            img.src = dataUrl; img.alt = '勘测链接二维码';
-            img.style.cssText = 'display:block;max-width:220px;cursor:pointer;';
-            img.onclick = function(e) { e.stopPropagation(); openQRLink(); };
-            qrContainer.appendChild(img);
-          }
-        });
-      } else if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
-        fallbackQR(qrContainer, url);
-      } else {
-        qrContainer.innerHTML = '<div style="padding:20px;color:#666;font-size:13px;">二维码库加载中...<br>如长时间未显示，请复制下方链接使用</div>';
+      try {
+        // qrcode-generator API
+        const qr = qrcode(0, 'M');
+        qr.addData(url);
+        qr.make();
+        const img = document.createElement('img');
+        img.src = qr.createDataURL(6, 4); // cellSize=6, margin=4
+        img.alt = '勘测链接二维码';
+        img.style.cssText = 'display:block;max-width:220px;cursor:pointer;';
+        img.onclick = function(e) { e.stopPropagation(); openQRLink(); };
+        qrContainer.appendChild(img);
+      } catch (err) {
+        qrContainer.innerHTML = '<div style="padding:20px;color:#e53935;font-size:13px;">二维码生成失败<br>请复制下方链接使用</div>';
       }
       document.getElementById('qrModal').classList.add('active');
     }
-    function fallbackQR(container, url) {
-      QRCode.toCanvas(url, { width: 220, margin: 2 }, function (err, canvas) {
-        if (err) {
-          container.innerHTML = '<div style="padding:20px;color:#e53935;font-size:13px;">二维码生成失败<br>请复制下方链接使用</div>';
-        } else {
-          canvas.style.cssText = 'display:block;cursor:pointer;';
-          canvas.onclick = function(e) { e.stopPropagation(); openQRLink(); };
-          container.appendChild(canvas);
-        }
-      });
-    }
+
     function openQRLink() {
-      if (currentQRUrl) {
-        window.open(currentQRUrl, '_blank', 'noopener,noreferrer');
-      }
+      if (currentQRUrl) window.open(currentQRUrl, '_blank', 'noopener,noreferrer');
     }
+
     function copyLink() {
       if (!currentQRUrl) return;
       navigator.clipboard.writeText(currentQRUrl).then(() => {
-        alert('链接已复制到剪贴板');
+        showToast('链接已复制到剪贴板', 'success');
       }).catch(() => {
         prompt('复制以下链接：', currentQRUrl);
       });
     }
+
     function copyLinkByIdx(idx) {
       const c = inviteCodeList[idx];
       if (!c) return;
       const link = getInviteLink(c.code);
       navigator.clipboard.writeText(link).then(() => {
-        alert('链接已复制，可直接发给客户：\n' + link);
+        showToast('链接已复制，可直接发给客户', 'success');
       }).catch(() => {
         prompt('复制以下链接发给客户：', link);
       });
     }
+
     function downloadQR() {
       const img = document.querySelector('#qrCode img');
       if (img && img.src) {
@@ -1088,42 +1567,38 @@
         a.download = '喷房勘测二维码.png';
         a.href = img.src;
         a.click();
-        return;
-      }
-      const canvas = document.querySelector('#qrCode canvas');
-      if (canvas) {
-        const a = document.createElement('a');
-        a.download = '喷房勘测二维码.png';
-        a.href = canvas.toDataURL();
-        a.click();
+        showToast('二维码已下载', 'success');
       } else {
-        alert('二维码尚未生成完成，请稍候');
+        showToast('二维码尚未生成完成', 'error');
       }
     }
+
     function closeModal(id) {
       document.getElementById(id).classList.remove('active');
     }
-    // 点击弹窗外部关闭
+
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('active');
       });
     });
-    // 照片预览
+
     function openPhotoPreview(src) {
       document.getElementById('photoPreviewImg').src = src;
       document.getElementById('photoPreview').classList.add('active');
     }
+
     function closePhotoPreview() {
       document.getElementById('photoPreview').classList.remove('active');
     }
-    // 回车登录
+
     document.getElementById('loginPass').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') doLogin();
     });
     document.getElementById('loginUser').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') document.getElementById('loginPass').focus();
     });
+
     checkAuth();
   </script>
 </body>

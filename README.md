@@ -1,89 +1,100 @@
-# 喷房现场勘测系统
+# 喷房现场勘测系统（v1.1.0 安全加固 + 体验优化版）
 
 一个基于 Node.js + PostgreSQL 的喷房现场勘测数据采集系统，支持邀请码专属链接、移动端表单提交（含现场照片）、管理后台查看、二维码分享、Excel 导出和邮件通知。
 
 ## 技术栈
 - **后端**: Node.js + Express
-- **数据库**: PostgreSQL (Supabase 免费版)
+- **数据库**: PostgreSQL (Supabase / Neon)
 - **前端**: 原生 HTML/CSS/JS（无需构建）
-- **邮件**: Resend（免费 3000 封/月）
-- **部署**: Render 免费 Web Service
+- **邮件**: Resend
+- **部署**: Render Web Service
+
+## v1.1.0 更新内容
+
+### Bug 修复
+- 修复邀请码大小写不一致导致的数据丢失和回填失败
+- 修复 UPSERT 非原子操作导致的重复记录问题（新增唯一索引 + ON CONFLICT）
+- 修复管理后台"本月新增"统计错误（改为后端全量统计）
+- 修复更新记录时 `created_at` 被覆盖的问题（新增 `updated_at` 字段）
+- 修复 `door_to_front_wall` / `light_to_grate_height` placeholder 为 "xxx" 的问题
+- 修复 `switchTab` 依赖全局 `event` 对象导致 Firefox 报错
+- 修复手机照片 EXIF 方向导致的旋转问题
+
+### 安全加固
+- 公开接口（校验邀请码、提交、保存草稿）新增速率限制（防枚举 / 防滥用）
+- 服务端校验照片数量（最多15张）、单张大小和格式
+- 新增 Content-Security-Policy (CSP) 响应头
+- 第三方 JS 库全部本地化（去除 CDN 依赖）
+- 数据库连接池显式配置（max=5，适配免费版连接数限制）
+- 错误日志脱敏（不打印完整 err 对象）
+- 分页参数上限保护（limit ≤ 200）
+
+### 体验优化
+- 表单页新增顶部进度条，实时显示填写进度
+- 三大节支持折叠 / 展开（手风琴）
+- 字段变化后 5 秒自动保存草稿（防抖）
+- 照片上传显示处理进度，限制每类数量（喷房9张/气源3张/电源3张）
+- 数字字段增加合理范围校验（min=0, max=100000）
+- 条件字段切换为"无"时，如有已填内容会弹出确认
+- 校验失败时顶部显示错误汇总，点击可跳转到对应字段
+- 移动端优化：输入框 16px 防缩放、三列改两列、底部固定操作栏、安全区适配
+- 示例图懒加载（loading="lazy"）
+- 本地草稿暂存（localStorage），网络中断不丢数据
+- 照片预览支持旋转
+- 管理后台新增搜索（客户名/邀请码/勘测名/地址）和状态筛选
+- 管理后台详情页支持编辑修改
+- 管理后台支持批量选择和批量删除
+- 删除操作改为自定义确认弹窗（重要删除需输入 DELETE）
+- 全部 alert 替换为 Toast 提示
+- 会话超时前 1 分钟弹出提醒，可延长
+- 新增近 6 个月提交趋势图（纯 CSS 柱状图）
+- 响应式适配平板和手机
 
 ## 功能
 - 邀请码管理：为每个客户生成专属勘测链接和二维码
-- 喷房现场勘测数据采集（中英文双语表单，含现场概述、控制柜安装、小门尺寸、墙面烤灯、气源电源、内部尺寸、地坑尺寸等）
+- 喷房现场勘测数据采集（中英文双语表单）
 - 各测量项附带示例参考图，点击可放大查看
-- 现场照片上传（喷房全景、气源点位、电源点位，自动压缩）
-- 条件选填模块（电梯/烤灯/水泥墩/斜坡，选择"有"后显示对应字段）
-- 管理后台（Basic Auth 认证，默认账号 CR001 / 1234）
-- 数据分页浏览、详情查看（照片按测量项分类展示，而非统一放底部）
-- 详情页一键导出 PDF
-- Excel 导出
+- 现场照片上传（自动压缩 + EXIF 方向校正）
+- 条件选填模块（电梯/烤灯/水泥墩/斜坡）
+- 管理后台（Basic Auth 认证 + 登录速率限制）
+- 数据分页浏览、搜索筛选、详情查看与编辑
+- 详情页导出 PDF
+- Excel 导出（分批查询，避免大内存占用）
 - 新记录邮件通知
 - 移动端友好的表单界面
 
 ---
 
-## 部署步骤（零成本方案）
+## 部署步骤
 
-### 第一步：创建 Supabase 数据库
-1. 访问 https://supabase.com ，注册/登录
-2. 点击 **New Project**
-3. 填写项目信息：
-   - Name: `spray-booth-db`
-   - Database Password: 设置一个强密码（记下来，后面要用）
-   - Region: 选离你近的（如 Singapore / Tokyo）
-   - Plan: Free
-4. 等待项目创建完成（约 1-2 分钟）
-5. 进入项目 → 左侧菜单 **Project Settings** → **Database**
-6. 找到 **Connection string** → 选择 **URI** 格式
-7. 复制连接字符串，把 `[YOUR-PASSWORD]` 替换成你刚才设置的密码
-   - 格式类似：`postgresql://postgres:你的密码@db.xxxx.supabase.co:5432/postgres`
-
-> 免费版限制：500MB 数据库、最多 2 个项目、7 天无活动会暂停（手动恢复即可，数据不丢）
-
----
+### 第一步：创建 PostgreSQL 数据库
+1. 访问 https://supabase.com 或 https://neon.tech ，注册/登录
+2. 创建新项目，获取数据库连接字符串（URI 格式）
+3. 格式类似：`postgresql://postgres:你的密码@db.xxxx.supabase.co:5432/postgres`
 
 ### 第二步：部署到 Render
 1. 把本项目代码推送到 GitHub 仓库
-2. 访问 https://render.com ，注册/登录（用 GitHub 账号）
-3. 点击 **New +** → **Web Service**
-4. 选择你刚才的 GitHub 仓库
-5. 填写配置：
-   - **Name**: `booth-collect`（随便起）
-   - **Region**: 选 Singapore（离国内近）
+2. 访问 https://render.com ，点击 **New +** → **Web Service**
+3. 选择 GitHub 仓库，填写配置：
    - **Runtime**: Node
    - **Build Command**: `npm install`
    - **Start Command**: `node --dns-result-order=ipv4first server.js`
-   - **Instance Type**: Free（免费）
-6. 点击 **Advanced** → **Add Environment Variable**，添加以下变量：
+   - **Instance Type**: Free（免费）或 Starter
+4. 添加环境变量：
+   | Key | Value | 必填 |
+   |-----|-------|------|
+   | `DATABASE_URL` | 数据库连接字符串 | ✅ |
+   | `ADMIN_USERNAME` | 管理后台用户名，默认 `CR001` | 可选 |
+   | `ADMIN_PASSWORD` | **至少 8 位强密码**（不设置服务无法启动） | ✅ |
+   | `RESEND_API_KEY` | Resend API Key | 可选 |
+   | `NOTIFICATION_EMAIL` | 接收通知的邮箱 | 可选 |
+5. 点击 **Create Web Service**，等待部署完成
 
-   | Key | Value |
-   |-----|-------|
-   | `DATABASE_URL` | 第一步从 Supabase 复制的连接字符串 |
-   | `ADMIN_USERNAME` | 管理后台用户名，默认 `CR001` |
-   | `ADMIN_PASSWORD` | **⚠️ 必填，至少 8 位强密码**（无默认值，不设置服务无法启动） |
-   | `RESEND_API_KEY` | （可选）Resend API Key，见第三步 |
-   | `NOTIFICATION_EMAIL` | （可选）接收通知的邮箱 |
-
-7. 点击 **Create Web Service**，等待部署完成（约 2-3 分钟）
-8. 部署成功后，Render 会给你一个域名，如 `https://booth-collect.onrender.com`
-
-> 免费版限制：15 分钟无访问会休眠，下次访问冷启动约 10-30 秒；每月 750 小时运行时长
-> 注意：Start Command 必须加 `--dns-result-order=ipv4first`，否则 Supabase 连接会因 IPv6 失败
-
----
+> 注意：Start Command 必须加 `--dns-result-order=ipv4first`，否则 Supabase 连接可能因 IPv6 失败
 
 ### 第三步（可选）：配置 Resend 邮件通知
-1. 访问 https://resend.com ，注册/登录
-2. 左侧菜单 **API Keys** → **Create API Key**
-3. 名字随便起，权限选 `Full access`，创建后复制 Key
-4. 免费版：3000 封/月，每天最多 100 封
-5. 回到 Render，在环境变量中填入：
-   - `RESEND_API_KEY`: 你复制的 Key
-   - `NOTIFICATION_EMAIL`: 接收通知的邮箱地址
-
-> 注意：免费版发件人是 `onboarding@resend.dev`，只能发给你注册 Resend 时用的邮箱。要发给其他邮箱需要验证自己的域名。
+1. 访问 https://resend.com ，创建 API Key
+2. 在 Render 环境变量中填入 `RESEND_API_KEY` 和 `NOTIFICATION_EMAIL`
 
 ---
 
@@ -95,72 +106,54 @@
 - 每个邀请码对应一个专属勘测链接和二维码，可发送给客户填写
 
 ### 表单提交页
-- 访问：`https://你的域名.onrender.com/?code=邀请码`
+- 访问：`https://你的域名/?code=邀请码`
 - 客户在手机上填写喷房勘测数据并上传现场照片
-- 表单字段：勘测名称、现场地址、车型、加热方式、气压温度、楼板厚度、楼层、电梯尺寸、地下管线、控制柜安装宽度、小门位置尺寸、墙面烤灯参数、气源电源位置及照片、喷房内部尺寸、地坑深度/宽度/水泥墩/斜坡等
+- 系统自动保存草稿，意外关闭后重新打开可恢复
 
 ### 管理后台
-- 访问：`https://你的域名.onrender.com/admin`
-- 输入你设置的 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 登录
-- 功能：查看所有勘测记录、查看详情（含照片预览）、删除记录、导出 Excel、管理邀请码
-
-### Excel 导出
-- 登录管理后台后，点击「导出 Excel」
-- 导出所有记录，包含全部文本字段（照片以 base64 存储在数据库中，不导出到 Excel）
+- 访问：`https://你的域名/admin`
+- 输入 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 登录
+- 功能：搜索筛选、查看详情、编辑记录、批量删除、导出 Excel/PDF、管理邀请码
 
 ---
 
 ## 本地开发
-
 ```bash
-# 安装依赖
 npm install
-
-# 复制环境变量文件并填写
 cp .env.example .env
-
-# 编辑 .env，填入 DATABASE_URL 等
-
-# 启动
+# 编辑 .env，填入 DATABASE_URL、ADMIN_PASSWORD 等
 npm start
 ```
-
 访问：
 - 表单：http://localhost:3000/?code=测试邀请码
 - 管理后台：http://localhost:3000/admin
 
----
-
 ## 项目结构
-
 ```
 spray-booth-collector/
-├── server.js          # 主服务入口（路由、中间件、邮件）
-├── db.js              # 数据库连接和操作
-├── package.json       # 依赖配置
+├── server.js          # 主服务入口（路由、中间件、限流、邮件）
+├── db.js              # 数据库连接和操作（原子 UPSERT、分批查询）
+├── package.json
 ├── render.yaml        # Render 部署配置
-├── .env.example       # 环境变量示例
-├── README.md          # 本文档
+├── README.md
 └── public/
-    ├── index.html     # 喷房勘测表单页（含照片上传、条件选填）
-    └── admin.html     # 管理后台（含二维码、照片预览）
+    ├── index.html     # 喷房勘测表单页（进度条、折叠、自动保存）
+    ├── admin.html     # 管理后台（搜索、编辑、批量操作）
+    ├── vendor/        # 第三方 JS 库（本地化）
+    │   ├── qrcode-generator.min.js
+    │   ├── html2canvas.min.js
+    │   └── jspdf.umd.min.js
+    └── images/        # 示例参考图
 ```
 
----
-
-## 常见问题
-
-**Q: Render 免费版休眠后第一次访问很慢？**
-A: 正常现象，冷启动约 10-30 秒。可以用 UptimeRobot 等免费监控服务每 5 分钟访问一次，保持唤醒。
-
-**Q: Supabase 数据库被暂停了怎么办？**
-A: 登录 Supabase 后台，点项目里的「Restore」按钮即可恢复，数据不会丢。
-
-**Q: 表单字段能改吗？**
-A: 可以。修改 `public/index.html` 的表单字段，同时修改 `db.js` 的 FIELDS 数组和表结构、`server.js` 的 EXPORT_COLUMNS。
-
-**Q: 照片存在哪里？**
-A: 照片在前端自动压缩（最大 1280px，质量 70%）后转 base64，存储在 PostgreSQL 的 `photos` 字段（TEXT 类型，JSON 数组格式）。
-
-**Q: 能绑自己的域名吗？**
-A: Render 免费版支持自定义域名，在项目设置 → Custom Domains 里添加，然后去域名服务商配 CNAME 解析。
+## 安全特性
+- 强制管理员密码（≥8位），无默认弱密码
+- 登录速率限制（15分钟内最多10次失败）
+- 公开接口速率限制（防邀请码枚举）
+- CORS 完全禁用（同源部署）
+- CSP + X-Frame-Options + X-Content-Type-Options 安全响应头
+- 所有 SQL 参数化查询（防注入）
+- 前端用户输入全部 HTML 转义（防 XSS）
+- 照片服务端校验（数量、大小、格式）
+- 错误信息脱敏（不向客户端泄露内部细节）
+- 邀请码使用 crypto 密码学安全随机生成
