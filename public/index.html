@@ -35,7 +35,22 @@
     }
     /* 进度条（U1） */
     .progress-bar-wrap {
-      margin-bottom: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: #fff;
+      padding: 10px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .progress-inner {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    /* 表单页顶部留出进度条高度 */
+    #formContainer {
+      margin-top: 60px;
     }
     .progress-label {
       display: flex;
@@ -554,14 +569,16 @@
     <div class="subtitle">On-site Spray Booth Survey</div>
     <div class="customer-banner" id="customerBanner"></div>
 
-    <!-- 进度条（U1） -->
+    <!-- 顶部固定进度条 -->
     <div class="progress-bar-wrap">
-      <div class="progress-label">
-        <span>填写进度 / Progress</span>
-        <span id="progressText">0%</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progressFill"></div>
+      <div class="progress-inner">
+        <div class="progress-label">
+          <span>填写进度 / Progress</span>
+          <span id="progressText">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
       </div>
     </div>
 
