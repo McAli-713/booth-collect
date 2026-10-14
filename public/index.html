@@ -48,17 +48,26 @@
       max-width: 720px;
       margin: 0 auto;
     }
-    /* 表单页顶部留出进度条高度 */
+    /* 表单页顶部留出进度条高度（含模式切换，略加高） */
     #formContainer {
-      margin-top: 60px;
+      margin-top: 72px;
     }
     .progress-label {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 12px;
       color: #666;
       margin-bottom: 6px;
+      gap: 8px;
     }
+    .progress-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: none;
+    }
+    #progressText { font-weight: 700; color: #1a73e8; white-space: nowrap; }
     .progress-track {
       height: 8px;
       background: #e8e8e8;
@@ -549,6 +558,128 @@
     @media (max-width: 360px) {
       .row-3 { grid-template-columns: 1fr; }
     }
+
+    /* ========== 引导模式（分步表单 / Guided Wizard）========== */
+    .wizard-only { display: none; }
+    body.wizard-mode .wizard-only { display: block; }
+    body.wizard-mode .wizard-only.sticky-actions { display: flex; }
+    body:not(.wizard-mode) .wizard-only { display: none !important; }
+    body.wizard-mode .full-only { display: none !important; }
+    /* 引导模式下：仅显示当前步骤的分组 */
+    body.wizard-mode .wz-group { display: none; }
+    body.wizard-mode .wz-group.wz-active { display: block; }
+    body.wizard-mode .section { display: none; }
+    body.wizard-mode .section.wz-active { display: block; }
+    /* 引导模式下：隐藏手风琴头部，强制展开节体 */
+    body.wizard-mode .section-header { display: none; }
+    body.wizard-mode .section .section-body,
+    body.wizard-mode .section.collapsed .section-body { display: block !important; }
+
+    /* 模式切换（分段控件 / Segmented Control） */
+    .mode-switch {
+      display: inline-flex;
+      gap: 4px;
+      background: #eef2f7;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    .ms-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, color 0.2s;
+    }
+    .ms-btn .ms-en { font-weight: 400; color: #999; font-size: 11px; margin-left: 2px; }
+    .ms-btn:hover { color: #1a73e8; }
+    .ms-btn.active { background: #1a73e8; color: #fff; }
+    .ms-btn.active .ms-en { color: rgba(255,255,255,0.85); }
+
+    /* 步骤条（Stepper，横向可滑动） */
+    #wizardStepper {
+      position: sticky;
+      top: 74px;
+      z-index: 90;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 10px 2px;
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 14px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    #wizardStepper::-webkit-scrollbar { display: none; }
+    .wz-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex: none;
+      padding: 6px 10px;
+      border-radius: 16px;
+      border: 1px solid #e0e0e0;
+      background: #fafafa;
+      font-size: 12px;
+      color: #888;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      user-select: none;
+    }
+    .wz-chip .wz-num {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #c9d2dc;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex: none;
+    }
+    .wz-chip.done { color: #2e7d32; border-color: #a5d6a7; background: #f1f8e9; }
+    .wz-chip.done .wz-num { background: #2e7d32; }
+    .wz-chip.active { color: #1a73e8; border-color: #1a73e8; background: #e8f0fe; font-weight: 700; }
+    .wz-chip.active .wz-num { background: #1a73e8; }
+    .wz-chip.locked { opacity: 0.5; cursor: not-allowed; }
+
+    /* 步骤标题与说明 */
+    .wz-step-header { margin-bottom: 16px; }
+    .wz-step-title { font-size: 17px; font-weight: 700; color: #333; line-height: 1.4; }
+    .wz-step-title .en { font-size: 13px; font-weight: 500; color: #999; margin-left: 4px; }
+    .wz-step-desc { font-size: 12px; color: #888; margin-top: 5px; line-height: 1.7; }
+
+    /* 引导模式底部操作栏按钮 */
+    .wz-btn-back, .wz-btn-next {
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .wz-btn-back { background: #757575; color: #fff; flex: 0 0 96px; }
+    .wz-btn-back:hover { background: #616161; }
+    .wz-btn-back:disabled { background: #bdbdbd; cursor: not-allowed; }
+    .wz-btn-next { flex: 1; background: #1a73e8; color: #fff; }
+    .wz-btn-next:hover { background: #1557b0; }
+    .wz-btn-next.final { background: #2e7d32; }
+    .wz-btn-next.final:hover { background: #1b5e20; }
+
+    @media (max-width: 480px) {
+      #wizardStepper { top: 72px; }
+      .wz-chip { padding: 5px 8px; font-size: 11px; }
+      .ms-btn { padding: 4px 7px; font-size: 11px; }
+      .ms-btn .ms-en { display: none; }
+      .wz-btn-back { flex: 0 0 84px; }
+    }
   </style>
 </head>
 <body>
@@ -569,17 +700,30 @@
     <div class="subtitle">On-site Spray Booth Survey</div>
     <div class="customer-banner" id="customerBanner"></div>
 
-    <!-- 顶部固定进度条 -->
+    <!-- 顶部固定进度条 + 模式切换 -->
     <div class="progress-bar-wrap">
       <div class="progress-inner">
         <div class="progress-label">
-          <span>填写进度 / Progress</span>
-          <span id="progressText">0%</span>
+          <span id="progressLabelText">填写进度 / Progress</span>
+          <span class="progress-right">
+            <span id="progressText">0%</span>
+            <span class="mode-switch" id="modeSwitch">
+              <button type="button" class="ms-btn" id="msWizard" onclick="setMode('wizard')">🧭 引导模式<span class="ms-en">Guided</span></button>
+              <button type="button" class="ms-btn" id="msFull" onclick="setMode('full')">📄 整页模式<span class="ms-en">Full Page</span></button>
+            </span>
+          </span>
         </div>
         <div class="progress-track">
           <div class="progress-fill" id="progressFill"></div>
         </div>
       </div>
+    </div>
+
+    <!-- 引导模式：步骤条 + 步骤标题（仅引导模式显示） -->
+    <div class="wizard-only" id="wizardStepper"></div>
+    <div class="wizard-only wz-step-header" id="wizardStepHeader">
+      <div class="wz-step-title" id="wzStepTitle"></div>
+      <div class="wz-step-desc" id="wzStepDesc"></div>
     </div>
 
     <!-- 错误汇总（U7） -->
@@ -598,6 +742,7 @@
           <div class="section-arrow">▼</div>
         </div>
         <div class="section-body">
+          <div class="wz-group" data-step="1">
           <div class="form-group">
             <label>勘测名称 <span class="required">*</span> <span class="en">/ Survey Name</span></label>
             <input type="text" name="survey_name" placeholder="如：某某4S店喷房勘测 / e.g.: XX 4S Store Booth Survey" required>
@@ -663,7 +808,9 @@
             <input type="text" name="underground_utilities" placeholder="例：无 / 有钢筋 / e.g.: None / Has rebar" required>
             <div class="field-error">此项为必填 / This field is required</div>
           </div>
+          </div><!-- /wz-group 步骤1 基本信息 -->
           <!-- 喷房现场照片 -->
+          <div class="wz-group" data-step="7">
           <div class="upload-section">
             <label>喷房内部及四周照片 <span class="required">*</span> <span class="en">/ Interior & Surrounding Photos</span> <span class="optional">(最多9张 / max 9)</span></label>
             <div class="example-row">
@@ -696,7 +843,9 @@
             <div class="thumb-list" id="boothThumbList"></div>
             <div class="field-error" id="boothPhotoError">请至少上传一张喷房现场照片 / Please upload at least one booth photo</div>
           </div>
+          </div><!-- /wz-group 步骤7 现场照片 -->
           <!-- 控制柜安装位置 -->
+          <div class="wz-group" data-step="2">
           <div class="subsection">控制柜安装位置 <span class="en">Control Cabinet Installation Location</span></div>
           <div class="cabinet-note">
             控制柜尺寸：2000×440×265mm <span class="en">/ Cabinet Dimensions: 2000×440×265mm</span>
@@ -743,7 +892,9 @@
               <div class="field-error">此项为必填 / This field is required</div>
             </div>
           </div>
+          </div><!-- /wz-group 步骤2 控制柜与小门 -->
           <!-- 墙面烤灯位置 -->
+          <div class="wz-group" data-step="3">
           <div class="subsection">墙面烤灯位置 <span class="en">Wall-Mounted Lamp Position</span></div>
           <div class="radio-group">
             <label><input type="radio" name="has_lamp" value="yes" onchange="onConditionalChange('lamp', true)"> 有 / Yes</label>
@@ -817,7 +968,9 @@
               </div>
             </div>
           </div>
+          </div><!-- /wz-group 步骤3 墙面烤灯 -->
           <!-- 气源位置 -->
+          <div class="wz-group" data-step="4">
           <div class="subsection">气源位置 <span class="en">Air Supply Source Location</span></div>
           <div class="example-img">
             <img src="images/example_air_supply.png" alt="气源位置示例" loading="lazy" onclick="previewExample(this.src)">
@@ -859,11 +1012,12 @@
             <div class="upload-progress" id="powerProgress"></div>
             <div class="thumb-list" id="powerThumbList"></div>
           </div>
+          </div><!-- /wz-group 步骤4 气源与电源 -->
         </div>
       </div>
 
       <!-- 二、喷房内部尺寸 -->
-      <div class="section collapsed" id="section2">
+      <div class="section collapsed" id="section2" data-step="5">
         <div class="section-header" onclick="toggleSectionPanel('section2')">
           <div class="section-title">二、喷房内部尺寸 <span class="en">II. Internal Dimensions</span></div>
           <div class="section-arrow">▼</div>
@@ -925,7 +1079,7 @@
       </div>
 
       <!-- 三、地坑尺寸 -->
-      <div class="section collapsed" id="section3">
+      <div class="section collapsed" id="section3" data-step="6">
         <div class="section-header" onclick="toggleSectionPanel('section3')">
           <div class="section-title">三、地坑尺寸 <span class="en">III. Pit Dimensions</span></div>
           <div class="section-arrow">▼</div>
@@ -1080,18 +1234,29 @@
         </div>
       </div>
 
-      <!-- 备注 -->
-      <div class="form-group" style="margin-top:20px;">
-        <label>备注 <span class="en">/ Remarks</span></label>
-        <textarea name="remarks" placeholder="其他需要说明的事项 / Other notes（如无请填"无"）"></textarea>
+      <!-- 备注（步骤8） -->
+      <div class="wz-group" data-step="8">
+        <div class="form-group" style="margin-top:20px;">
+          <label>备注 <span class="en">/ Remarks</span></label>
+          <textarea name="remarks" placeholder="其他需要说明的事项 / Other notes（如无请填"无"）"></textarea>
+        </div>
       </div>
     </form>
 
-    <!-- 底部固定操作栏（U8） -->
-    <div class="sticky-actions">
+    <!-- 底部固定操作栏（整页模式） -->
+    <div class="sticky-actions full-only">
       <div class="container-inner">
-        <button type="button" class="btn-save-draft" id="saveDraftBtn" onclick="saveDraft()">临时保存<br><span style="font-size:10px;font-weight:400;">Save Draft</span></button>
+        <button type="button" class="btn-save-draft" id="saveDraftBtn" onclick="saveDraft(false)">临时保存<br><span style="font-size:10px;font-weight:400;">Save Draft</span></button>
         <button type="submit" id="submitBtn" form="surveyForm">生成预览 / Generate Preview</button>
+      </div>
+    </div>
+
+    <!-- 底部固定操作栏（引导模式） -->
+    <div class="sticky-actions wizard-only" id="wizardBar">
+      <div class="container-inner">
+        <button type="button" class="wz-btn-back" id="wizardBackBtn" onclick="wizardBack()">← 上一步</button>
+        <button type="button" class="wz-btn-next" id="wizardNextBtn" onclick="wizardNext()">下一步 / Next →</button>
+        <button type="button" class="btn-save-draft" id="wizardSaveDraftBtn" onclick="saveDraft(false)">临时保存<br><span style="font-size:10px;font-weight:400;">Save Draft</span></button>
       </div>
     </div>
     <div class="save-status" id="saveStatus" style="margin-top:8px;"></div>
@@ -1135,6 +1300,230 @@
     let currentPreviewRotation = 0;
     let autoSaveTimer = null;
     let hasSubmitted = false;
+
+    // ========== 引导模式（分步表单）状态 ==========
+    let currentMode = 'wizard';                 // 'wizard' 引导模式 | 'full' 整页模式
+    let currentStep = 1;                        // 当前步骤（1-based）
+    let maxStepReached = 1;                     // 已到达的最大步骤（用于步骤条点击跳转）
+
+    // 步骤定义：group 与 HTML 中 data-step 对应
+    const WIZARD_STEPS = [
+      {
+        n: 1, zh: '基本信息', en: 'Basic Information',
+        desc: '填写勘测名称、现场地址、喷涂车型、加热方式、最高气压/温度、楼板厚度、所在楼层及地下管线情况。/ Fill in survey name, site address, vehicle types, heating method, max air pressure & temperature, slab thickness, floor level and underground utilities.'
+      },
+      {
+        n: 2, zh: '控制柜与小门', en: 'Control Cabinet & Auxiliary Door',
+        desc: '测量电柜安装宽度、小门位置、门与前墙面距离及门宽（单位 mm）。/ Measure cabinet installation width, auxiliary door position, door-to-front-wall distance and door width (in mm).'
+      },
+      {
+        n: 3, zh: '墙面烤灯', en: 'Wall-Mounted Lamps',
+        desc: '如现场墙面有烤灯，请选择"有"并测量各项尺寸；如无请选择"无"，可直接进入下一步。/ If wall-mounted lamps exist, select "Yes" and measure the dimensions; otherwise select "No" to skip.'
+      },
+      {
+        n: 4, zh: '气源与电源', en: 'Air Supply & Power',
+        desc: '描述气源接口与 220V 电源插座的位置，并可上传点位照片（气源/电源各最多 3 张）。/ Describe the air supply outlet and 220V power outlet locations, and upload photos (max 3 each).'
+      },
+      {
+        n: 5, zh: '喷房内部尺寸', en: 'Internal Dimensions',
+        desc: '测量喷房内部高度、宽度、长度，以及灯具底部至格栅高度、灯具宽度（单位 mm）。/ Measure interior height, width and length, plus light-bottom-to-grating height and light fixture width (in mm).'
+      },
+      {
+        n: 6, zh: '地坑尺寸', en: 'Pit Dimensions',
+        desc: '测量 6 个深度点、地坑宽度、墙边筋宽度；如有水泥墩或斜坡，请选择"有"并填写尺寸。/ Measure 6 depth points, pit width and edge bar width; select "Yes" and fill in dimensions if concrete pier or ramp exists.'
+      },
+      {
+        n: 7, zh: '现场照片', en: 'Site Photos',
+        desc: '上传喷房内部及四周照片（最多 9 张）。建议包含：大门全景、内部全景、底部格栅、立柱。/ Upload booth interior & surrounding photos (max 9). Suggested: entrance, interior, grating, pillars.'
+      },
+      {
+        n: 8, zh: '备注与确认', en: 'Remarks & Confirm',
+        desc: '补充其他需要说明的事项（如无可填"无"），然后点击"生成预览"核对并提交。/ Add any other notes (or "None"), then click "Generate Preview" to review and submit.'
+      }
+    ];
+
+    function getStepContainer(n) {
+      const group = document.querySelector('.wz-group[data-step="' + n + '"]');
+      if (group) return group;
+      const sec = document.querySelector('.section[data-step="' + n + '"]');
+      return sec ? sec.querySelector('.section-body') : null;
+    }
+
+    // 步骤是否已完成（用于步骤条 ✓ 标记，不做错误提示）
+    function isStepComplete(n) {
+      const container = getStepContainer(n);
+      if (!container) return false;
+      let ok = true;
+      container.querySelectorAll('input[required], textarea[required], select[required]').forEach(el => {
+        const condSection = el.closest('.conditional-section');
+        if (condSection && !condSection.classList.contains('visible')) return;
+        if (!el.value || !el.value.trim()) ok = false;
+      });
+      if (n === 7 && photoStore.booth.length === 0) ok = false;
+      return ok;
+    }
+
+    // 单步校验：返回第一个未通过的元素，全部通过返回 null
+    function validateStep(n) {
+      clearAllErrors();
+      const container = getStepContainer(n);
+      if (!container) return null;
+      const invalidFields = [];
+      let firstInvalid = null;
+      container.querySelectorAll('input[required], textarea[required], select[required]').forEach(el => {
+        const condSection = el.closest('.conditional-section');
+        if (condSection && !condSection.classList.contains('visible')) return;
+        if (!el.value || !el.value.trim()) {
+          el.classList.add('input-error');
+          const errDiv = el.closest('.form-group')?.querySelector('.field-error');
+          if (errDiv) errDiv.classList.add('show');
+          if (!firstInvalid) firstInvalid = el;
+          invalidFields.push({ el, label: FIELD_LABELS_MAP[el.name] || el.name });
+        }
+      });
+      if (n === 7 && photoStore.booth.length === 0) {
+        const boothErr = document.getElementById('boothPhotoError');
+        if (boothErr) boothErr.classList.add('show');
+        if (!firstInvalid) firstInvalid = document.getElementById('boothPhotos');
+        invalidFields.push({ el: document.getElementById('boothPhotos'), label: '喷房现场照片' });
+      }
+      const summary = document.getElementById('errorSummary');
+      const errorList = document.getElementById('errorList');
+      if (invalidFields.length > 0) {
+        errorList.innerHTML = invalidFields.map((f, i) =>
+          '<span class="es-tag" onclick="scrollToField(' + i + ')">' + f.label + '</span>'
+        ).join('');
+        summary.classList.add('show');
+        window._invalidFields = invalidFields;
+      } else {
+        summary.classList.remove('show');
+      }
+      return firstInvalid;
+    }
+
+    function persistWizardState() {
+      try {
+        const code = document.getElementById('inviteCode').value || 'anon';
+        localStorage.setItem('booth_step_' + code, String(currentStep));
+        localStorage.setItem('booth_maxstep_' + code, String(maxStepReached));
+      } catch (e) { /* 忽略存储异常 */ }
+    }
+
+    function refreshStepper() {
+      const stepper = document.getElementById('wizardStepper');
+      if (!stepper) return;
+      if (stepper.children.length !== WIZARD_STEPS.length) {
+        stepper.innerHTML = WIZARD_STEPS.map(s =>
+          '<div class="wz-chip" data-n="' + s.n + '" onclick="stepperJump(' + s.n + ')">' +
+          '<span class="wz-num">' + s.n + '</span><span class="wz-label">' + s.zh + '</span></div>'
+        ).join('');
+      }
+      WIZARD_STEPS.forEach(s => {
+        const chip = stepper.querySelector('.wz-chip[data-n="' + s.n + '"]');
+        if (!chip) return;
+        const done = isStepComplete(s.n);
+        chip.classList.toggle('done', done);
+        chip.classList.toggle('active', s.n === currentStep);
+        chip.classList.toggle('locked', s.n > maxStepReached);
+        chip.querySelector('.wz-num').textContent = done ? '✓' : s.n;
+      });
+      // 滚动当前步骤到可见区域
+      const activeChip = stepper.querySelector('.wz-chip.active');
+      if (activeChip && activeChip.scrollIntoView) {
+        activeChip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+
+    function renderWizard() {
+      // 显示当前步骤分组及其所在节
+      document.querySelectorAll('.wz-group').forEach(g => g.classList.remove('wz-active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('wz-active'));
+      const group = document.querySelector('.wz-group[data-step="' + currentStep + '"]');
+      if (group) {
+        group.classList.add('wz-active');
+        const sec = group.closest('.section');
+        if (sec) sec.classList.add('wz-active');
+      } else {
+        const sec = document.querySelector('.section[data-step="' + currentStep + '"]');
+        if (sec) sec.classList.add('wz-active');
+      }
+      // 步骤标题与说明
+      const step = WIZARD_STEPS[currentStep - 1];
+      document.getElementById('wzStepTitle').innerHTML =
+        '第 ' + currentStep + ' 步 / Step ' + currentStep + ' of ' + WIZARD_STEPS.length +
+        '：' + step.zh + ' <span class="en">/ ' + step.en + '</span>';
+      document.getElementById('wzStepDesc').textContent = step.desc;
+      // 底部按钮
+      document.getElementById('wizardBackBtn').disabled = (currentStep === 1);
+      const nextBtn = document.getElementById('wizardNextBtn');
+      const isLast = (currentStep === WIZARD_STEPS.length);
+      nextBtn.textContent = isLast ? '生成预览 / Generate Preview' : '下一步 / Next →';
+      nextBtn.classList.toggle('final', isLast);
+      refreshStepper();
+      updateProgressText(calcProgressPct());
+    }
+
+    function goToStep(n) {
+      currentStep = Math.min(Math.max(n, 1), WIZARD_STEPS.length);
+      if (currentStep > maxStepReached) maxStepReached = currentStep;
+      persistWizardState();
+      renderWizard();
+    }
+
+    function stepperJump(n) {
+      if (n >= 1 && n <= maxStepReached) goToStep(n);
+      else showToast('请先完成当前步骤 / Please finish the current step first', 'info');
+    }
+
+    function wizardBack() {
+      if (currentStep > 1) {
+        goToStep(currentStep - 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function wizardNext() {
+      const invalid = validateStep(currentStep);
+      if (invalid) {
+        showToast('请完成本步必填项 / Please complete the required fields', 'error');
+        invalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        invalid.focus({ preventScroll: true });
+        return;
+      }
+      if (currentStep < WIZARD_STEPS.length) {
+        goToStep(currentStep + 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      // 最后一步：整体校验后进入预览
+      const invalidAll = validateForm();
+      if (invalidAll) {
+        const section = invalidAll.closest('.section');
+        if (section) section.classList.add('wz-active');
+        invalidAll.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('请填写所有必填项 / Please fill in all required fields', 'error');
+        return;
+      }
+      const data = collectFormData();
+      generatePreview(data);
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('previewPage').classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    // 模式切换：wizard 引导模式 | full 整页模式（数据不丢失，随时可切回）
+    function setMode(mode) {
+      currentMode = (mode === 'full') ? 'full' : 'wizard';
+      try { localStorage.setItem('booth_mode', currentMode); } catch (e) { /* 忽略 */ }
+      document.body.classList.toggle('wizard-mode', currentMode === 'wizard');
+      document.getElementById('msWizard').classList.toggle('active', currentMode === 'wizard');
+      document.getElementById('msFull').classList.toggle('active', currentMode === 'full');
+      document.getElementById('progressLabelText').textContent =
+        currentMode === 'wizard' ? '引导模式 / Guided Mode' : '填写进度 / Progress';
+      if (currentMode === 'wizard') renderWizard();
+      else updateProgress();
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
 
     // ========== Toast ==========
     function showToast(message, type = 'success') {
@@ -1443,7 +1832,7 @@
     });
 
     // ========== 进度条（U1）==========
-    function updateProgress() {
+    function calcProgressPct() {
       const requiredInputs = form.querySelectorAll('input[required], textarea[required]');
       let total = 0, filled = 0;
       for (const el of requiredInputs) {
@@ -1455,9 +1844,24 @@
       // 喷房照片也算一项
       total++;
       if (photoStore.booth.length > 0) filled++;
-      const pct = total > 0 ? Math.round(filled / total * 100) : 0;
+      return total > 0 ? Math.round(filled / total * 100) : 0;
+    }
+
+    function updateProgressText(pct) {
+      const el = document.getElementById('progressText');
+      if (!el) return;
+      if (currentMode === 'wizard') {
+        el.textContent = '第' + currentStep + '步/共' + WIZARD_STEPS.length + '步 · ' + pct + '%';
+      } else {
+        el.textContent = pct + '%';
+      }
+    }
+
+    function updateProgress() {
+      const pct = calcProgressPct();
       document.getElementById('progressFill').style.width = pct + '%';
-      document.getElementById('progressText').textContent = pct + '%';
+      updateProgressText(pct);
+      if (currentMode === 'wizard') refreshStepper();
     }
 
     // ========== 自动保存（U3：防抖 5 秒）==========
@@ -1671,11 +2075,17 @@
     }
 
     // ========== 临时保存 ==========
+    function getSaveBtn() {
+      return (currentMode === 'wizard')
+        ? document.getElementById('wizardSaveDraftBtn')
+        : document.getElementById('saveDraftBtn');
+    }
+
     async function saveDraft(isAuto) {
       if (hasSubmitted) return;
-      const saveBtn = document.getElementById('saveDraftBtn');
+      const saveBtn = getSaveBtn();
       const statusEl = document.getElementById('saveStatus');
-      saveBtn.disabled = true;
+      if (saveBtn) saveBtn.disabled = true;
       statusEl.className = 'save-status saving';
       statusEl.textContent = isAuto ? '自动保存中... / Auto-saving...' : '保存中... / Saving...';
       const data = collectFormData();
@@ -1699,8 +2109,10 @@
         statusEl.className = 'save-status error';
         statusEl.textContent = '网络错误，本地已暂存 / Network error, saved locally';
       } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '临时保存<br><span style="font-size:10px;font-weight:400;">Save Draft</span>';
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '临时保存<br><span style="font-size:10px;font-weight:400;">Save Draft</span>';
+        }
       }
     }
 
@@ -1779,6 +2191,13 @@
           document.getElementById('inviteCode').value = data.invite_code;
           ['elevator','lamp','pier','ramp'].forEach(s => toggleSection(s, false));
           clearLocalDraft();
+          // 重置引导步骤
+          currentStep = 1;
+          maxStepReached = 1;
+          try {
+            localStorage.removeItem('booth_step_' + (data.invite_code || ''));
+            localStorage.removeItem('booth_maxstep_' + (data.invite_code || ''));
+          } catch (e) { /* 忽略 */ }
           document.getElementById('previewPage').classList.remove('active');
           document.getElementById('formContainer').style.display = 'none';
           document.getElementById('successPage').classList.add('active');
@@ -1829,6 +2248,16 @@
             }
           }
           updateProgress();
+          // 恢复上次的步骤进度与模式偏好（引导/整页）
+          try {
+            const cs = parseInt(localStorage.getItem('booth_step_' + data.code) || '1', 10);
+            const ms = parseInt(localStorage.getItem('booth_maxstep_' + data.code) || '1', 10);
+            currentStep = (cs >= 1 && cs <= WIZARD_STEPS.length) ? cs : 1;
+            maxStepReached = Math.max(1, isNaN(ms) ? 1 : ms, currentStep);
+          } catch (e) { currentStep = 1; maxStepReached = 1; }
+          let savedMode = null;
+          try { savedMode = localStorage.getItem('booth_mode'); } catch (e) { /* 忽略 */ }
+          setMode(savedMode === 'full' ? 'full' : 'wizard');
         } else {
           document.getElementById('invalidPage').style.display = 'block';
         }
@@ -1840,6 +2269,11 @@
     // ========== 表单提交 -> 校验 -> 预览 ==========
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      // 引导模式下：回车 = 进入下一步（最后一步才生成预览）
+      if (currentMode === 'wizard' && currentStep < WIZARD_STEPS.length) {
+        wizardNext();
+        return;
+      }
       const invalidEl = validateForm();
       if (invalidEl) {
         // 展开所在折叠面板
