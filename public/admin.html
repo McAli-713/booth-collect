@@ -639,6 +639,14 @@
             <label>备注</label>
             <input type="text" id="newDesc" placeholder="选填">
           </div>
+          <div class="form-group">
+            <label>填表语言 *</label>
+            <select id="newLanguage" style="height:38px;padding:0 10px;border:1px solid #d0d7e2;border-radius:8px;font-size:14px;background:#fff;">
+              <option value="bi" selected>中英双语</option>
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select>
+          </div>
           <button class="btn btn-success" onclick="createInviteCode()">生成邀请码</button>
         </div>
         <div class="table-container">
@@ -649,6 +657,7 @@
                 <th>邀请码</th>
                 <th>客户名称</th>
                 <th>填表链接</th>
+                <th>填表语言</th>
                 <th>提交次数</th>
                 <th>状态</th>
                 <th>创建时间</th>
@@ -1419,9 +1428,10 @@
       inviteCodeList = codes;
       const tbody = document.getElementById('inviteTableBody');
       if (codes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty">暂无邀请码，点击上方"生成邀请码"创建</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">暂无邀请码，点击上方"生成邀请码"创建</td></tr>';
         return;
       }
+      const langNames = { zh: '中文', en: 'English', bi: '双语' };
       const origin = window.location.origin;
       tbody.innerHTML = codes.map((c, idx) => {
         const link = origin + '/?code=' + encodeURIComponent(c.code);
@@ -1431,6 +1441,7 @@
           <td><span class="code-text">${escapeHtml(c.code)}</span></td>
           <td>${escapeHtml(c.customer_name)}</td>
           <td><div class="invite-link-cell" title="${escapeHtml(link)}">${escapeHtml(link)}</div></td>
+          <td><span class="badge badge-active">${langNames[c.language] || '双语'}</span></td>
           <td>${c.usage_count} 次</td>
           <td><span class="badge ${c.is_active ? 'badge-active' : 'badge-inactive'}">${c.is_active ? '启用' : '已禁用'}</span></td>
           <td>${new Date(c.created_at).toLocaleString('zh-CN')}</td>
@@ -1448,12 +1459,13 @@
     async function createInviteCode() {
       const name = document.getElementById('newCustomerName').value.trim();
       const desc = document.getElementById('newDesc').value.trim();
+      const language = document.getElementById('newLanguage').value;
       if (!name) { showToast('请输入客户名称', 'error'); return; }
       try {
         const res = await fetch('/api/invite-codes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-          body: JSON.stringify({ customer_name: name, description: desc })
+          body: JSON.stringify({ customer_name: name, description: desc, language: language })
         });
         if (res.ok) {
           document.getElementById('newCustomerName').value = '';

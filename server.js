@@ -245,6 +245,7 @@ app.get('/api/verify-code', verifyCodeLimiter, async (req, res) => {
         valid: true,
         customer_name: invite.customer_name,
         code: invite.code,
+        language: invite.language || 'bi',
         survey: survey || null
       });
     } else {
@@ -398,14 +399,17 @@ app.get('/api/invite-codes', authMiddleware, async (req, res) => {
 
 app.post('/api/invite-codes', authMiddleware, async (req, res) => {
   try {
-    const { customer_name, description } = req.body;
+    const { customer_name, description, language } = req.body;
     if (!customer_name || !String(customer_name).trim()) {
       return res.status(400).json({ error: '客户名称必填' });
     }
     if (String(customer_name).length > 200) {
       return res.status(400).json({ error: '客户名称过长（最多200字符）' });
     }
-    const code = await createInviteCode(String(customer_name).trim(), description);
+    if (language && !['zh', 'en', 'bi'].includes(language)) {
+      return res.status(400).json({ error: '语言参数无效（可选：zh / en / bi）' });
+    }
+    const code = await createInviteCode(String(customer_name).trim(), description, language);
     res.json(code);
   } catch (err) {
     serverError(res, err, '创建邀请码失败');

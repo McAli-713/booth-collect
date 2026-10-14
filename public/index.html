@@ -683,6 +683,21 @@
     .wz-btn-next.final { background: #2e7d32; }
     .wz-btn-next.final:hover { background: #1b5e20; }
 
+    /* ========== 收集表语言模式（由后台邀请码指定）========== */
+    /* zh=仅中文 / en=仅英文：隐藏英文补充片段（.en/.ms-en），英文文案由 JS 词典替换中文文本节点得出 */
+    body.lang-zh .en, body.lang-en .en,
+    body.lang-zh .ms-en, body.lang-en .ms-en { display: none !important; }
+    /* 步骤说明：双语模式下中文一行、英文一行 */
+    .wz-step-desc .desc-en-line { display: block; color: #aaa; font-size: 11px; margin-top: 2px; }
+
+    /* 占位文字缩小一号，保证长示例（如地址）在框内完整显示 */
+    input::placeholder, textarea::placeholder {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #a8b3bf;
+    }
+    textarea { min-height: 76px; }
+
     @media (max-width: 480px) {
       #wizardStepper { top: 72px; }
       .wz-chip { padding: 5px 8px; font-size: 11px; }
@@ -707,7 +722,7 @@
   <!-- 表单页面 -->
   <div class="container" id="formContainer" style="display:none;">
     <h1>现场喷房勘测</h1>
-    <div class="subtitle">On-site Spray Booth Survey</div>
+    <div class="subtitle en">On-site Spray Booth Survey</div>
     <div class="customer-banner" id="customerBanner"></div>
 
     <!-- 顶部固定进度条 + 模式切换 -->
@@ -755,7 +770,7 @@
           <div class="wz-group" data-step="1">
           <div class="form-group">
             <label>勘测名称 <span class="required">*</span> <span class="en">/ Survey Name</span></label>
-            <input type="text" name="survey_name" placeholder="如：某某4S店喷房勘测 / e.g.: XX 4S Store Booth Survey" required>
+            <input type="text" name="survey_name" placeholder="如：某某4S店喷房勘测 / e.g.: XX 4S Dealership Booth Survey" required>
             <div class="field-error">此项为必填 / This field is required</div>
           </div>
           <div class="form-group">
@@ -771,7 +786,7 @@
             </div>
             <div class="form-group">
               <label>喷房加热方式 <span class="required">*</span> <span class="en">/ Heating Method</span></label>
-              <input type="text" name="heating_method" placeholder="例：顶部热源或电加热 / e.g.: Overhead Heat or Electric Heating" required>
+              <input type="text" name="heating_method" placeholder="例：顶部热源或电加热 / e.g.: Overhead Heater or Electric Heating" required>
               <div class="field-error">此项为必填 / This field is required</div>
             </div>
           </div>
@@ -846,7 +861,7 @@
             <div class="upload-area" onclick="document.getElementById('boothPhotos').click()">
               <div class="upload-icon">📷</div>
               <div class="upload-text">点击上传喷房现场照片 / Tap to upload booth photos</div>
-              <div class="upload-hint">建议：大门全景、内部全景、底部格栅、立柱 / Suggest: entrance, interior, grating, pillars</div>
+              <div class="upload-hint">建议：大门全景、内部全景、底部格栅、立柱 / Suggested views: entrance, interior overview, grating, pillars</div>
               <input type="file" id="boothPhotos" accept="image/*" multiple onchange="handlePhotoUpload(this, 'booth')">
             </div>
             <div class="upload-progress" id="boothProgress"></div>
@@ -981,7 +996,7 @@
           </div><!-- /wz-group 步骤3 墙面烤灯 -->
           <!-- 气源位置 -->
           <div class="wz-group" data-step="4">
-          <div class="subsection">气源位置 <span class="en">Air Supply Source Location</span></div>
+          <div class="subsection">气源位置 <span class="en">Air Supply Location</span></div>
           <div class="example-img">
             <img src="images/example_air_supply.png" alt="气源位置示例" loading="lazy" onclick="previewExample(this.src)">
             <div class="caption">气源位置示意 / Air Supply Location</div>
@@ -1047,7 +1062,7 @@
               <div class="field-error">此项为必填 / This field is required</div>
             </div>
             <div class="form-group">
-              <label>灯具底部至格栅高度 <span class="required">*</span> <span class="en">/ Light Bottom to Grate</span></label>
+              <label>灯具底部至格栅高度 <span class="required">*</span> <span class="en">/ Lamp Bottom to Grating</span></label>
               <div class="input-with-unit">
                 <input type="number" name="light_to_grate_height" placeholder="例：2600" min="0" max="100000" step="1" required>
                 <span class="unit-suffix">mm</span>
@@ -1256,7 +1271,7 @@
     <!-- 底部固定操作栏（整页模式） -->
     <div class="sticky-actions full-only">
       <div class="container-inner">
-        <button type="button" class="btn-save-draft" id="saveDraftBtn" onclick="saveDraft(false)">临时保存<br><span style="font-size:10px;font-weight:400;">Save Draft</span></button>
+        <button type="button" class="btn-save-draft" id="saveDraftBtn" onclick="saveDraft(false)">临时保存<br><span class="en" style="font-size:10px;font-weight:400;">Save Draft</span></button>
         <button type="submit" id="submitBtn" form="surveyForm">生成预览 / Generate Preview</button>
       </div>
     </div>
@@ -1266,7 +1281,7 @@
       <div class="container-inner">
         <button type="button" class="wz-btn-back" id="wizardBackBtn" onclick="wizardBack()">← 上一步</button>
         <button type="button" class="wz-btn-next" id="wizardNextBtn" onclick="wizardNext()">下一步 / Next →</button>
-        <button type="button" class="btn-save-draft" id="wizardSaveDraftBtn" onclick="saveDraft(false)">临时保存<br><span style="font-size:10px;font-weight:400;">Save Draft</span></button>
+        <button type="button" class="btn-save-draft" id="wizardSaveDraftBtn" onclick="saveDraft(false)">临时保存<br><span class="en" style="font-size:10px;font-weight:400;">Save Draft</span></button>
       </div>
     </div>
     <div class="save-status" id="saveStatus" style="margin-top:8px;"></div>
@@ -1280,7 +1295,7 @@
     </div>
     <!-- 必填未补齐拦截横幅：有未填必填项时显示，确认提交被阻止 -->
     <div class="preview-warn" id="previewWarn" style="display:none;">
-      <div class="pw-title">⚠️ 暂时无法提交：还有 <span id="pwCount">0</span> 项必填未填写<br>Submission blocked: <span id="pwCountEn">0</span> required field(s) still missing</div>
+      <div class="pw-title">⚠️ 暂时无法提交：还有 <span id="pwCount">0</span> 项必填未填写<br><span class="en">Submission blocked: <span id="pwCountEn">0</span> required field(s) still missing</span></div>
       <div class="pw-list" id="pwList"></div>
       <div class="pw-tip">请点击"返回修改"补充以上信息后再提交（已填内容不会丢失）/ Please click "Back to Edit" to complete the fields above — your filled data is kept.</div>
     </div>
@@ -1317,6 +1332,190 @@
     let autoSaveTimer = null;
     let hasSubmitted = false;
 
+    // ========== 收集表语言（后台创建邀请码时指定）==========
+    // 'bi' 中英双语（默认排版）| 'zh' 仅中文 | 'en' 仅英文
+    let FORM_LANG = 'bi';
+
+    // 按语言取文案：双语=「中文 / English」，中文=仅中文，英文=仅英文
+    function t(zh, en) {
+      if (FORM_LANG === 'zh') return zh;
+      if (FORM_LANG === 'en') return en;
+      return zh + ' / ' + en;
+    }
+
+    // 静态文本词典：key 为 HTML 文本节点 trim 后的原文；zh/en 为该语言下的最终显示文案
+    const I18N_TEXT = {
+      '现场喷房勘测': { zh: '现场喷房勘测', en: 'On-site Spray Booth Survey' },
+      '填写进度 / Progress': { zh: '填写进度', en: 'Progress' },
+      '🧭 引导模式': { zh: '🧭 引导模式', en: '🧭 Guided Mode' },
+      '📄 整页模式': { zh: '📄 整页模式', en: '📄 Full Page' },
+      '⚠️ 以下必填项未完成 / Required fields missing:': { zh: '⚠️ 以下必填项未完成', en: '⚠️ Required fields missing:' },
+      '一、现场概述': { zh: '一、现场概述', en: 'I. Site Overview' },
+      '二、喷房内部尺寸': { zh: '二、喷房内部尺寸', en: 'II. Booth Internal Dimensions' },
+      '三、地坑尺寸': { zh: '三、地坑尺寸', en: 'III. Pit Dimensions' },
+      '勘测名称': { zh: '勘测名称', en: 'Survey Name' },
+      '现场地理位置': { zh: '现场地理位置', en: 'Location' },
+      '主要喷涂车型': { zh: '主要喷涂车型', en: 'Main Vehicle Types' },
+      '喷房加热方式': { zh: '喷房加热方式', en: 'Heating Method' },
+      '喷房最高气压': { zh: '喷房最高气压', en: 'Max Air Pressure' },
+      '喷房最高温度': { zh: '喷房最高温度', en: 'Max Temperature' },
+      '地板/楼板厚度': { zh: '地板/楼板厚度', en: 'Floor/Slab Thickness' },
+      '喷房所在楼层': { zh: '喷房所在楼层', en: 'Booth Level' },
+      '现场是否有货梯（设备运输用）': { zh: '现场是否有货梯（设备运输用）', en: 'Freight Elevator Available (for equipment transport)' },
+      '有 / Yes': { zh: '有', en: 'Yes' },
+      '无 / No': { zh: '无', en: 'No' },
+      '无 / None': { zh: '无', en: 'None' },
+      '有水泥墩 / Has Concrete Pier': { zh: '有水泥墩', en: 'Has Concrete Pier' },
+      '有斜坡 / Has Ramp': { zh: '有斜坡', en: 'Has Ramp' },
+      '电梯内部尺寸': { zh: '电梯内部尺寸', en: 'Elevator Internal Dimensions' },
+      '喷房地下有无钢筋、水管和电线': { zh: '喷房地下有无钢筋、水管和电线', en: 'Rebar, Water Pipes & Wires Under the Booth' },
+      '此项为必填 / This field is required': { zh: '此项为必填', en: 'This field is required' },
+      '喷房内部及四周照片': { zh: '喷房内部及四周照片', en: 'Booth Interior & Surrounding Photos' },
+      '(最多9张 / max 9)': { zh: '(最多9张)', en: '(max 9)' },
+      '(最多3张 / max 3)': { zh: '(最多3张)', en: '(max 3)' },
+      '示例图 Sample 1': { zh: '示例图1', en: 'Sample 1' },
+      '示例图 Sample 2': { zh: '示例图2', en: 'Sample 2' },
+      '示例图 Sample 3': { zh: '示例图3', en: 'Sample 3' },
+      '示例图 Sample 4': { zh: '示例图4', en: 'Sample 4' },
+      '点击上传喷房现场照片 / Tap to upload booth photos': { zh: '点击上传喷房现场照片', en: 'Tap to upload booth photos' },
+      '建议：大门全景、内部全景、底部格栅、立柱 / Suggested views: entrance, interior overview, grating, pillars': { zh: '建议：大门全景、内部全景、底部格栅、立柱', en: 'Suggested views: entrance, interior overview, grating, pillars' },
+      '请至少上传一张喷房现场照片 / Please upload at least one booth photo': { zh: '请至少上传一张喷房现场照片', en: 'Please upload at least one booth photo' },
+      '控制柜安装位置': { zh: '控制柜安装位置', en: 'Control Cabinet Installation Location' },
+      '控制柜尺寸：2000×440×265mm': { zh: '控制柜尺寸：2000×440×265mm', en: 'Cabinet Dimensions: 2000×440×265mm' },
+      '控制柜安装位置示意 / Cabinet Installation Location': { zh: '控制柜安装位置示意', en: 'Cabinet Installation Location' },
+      '安装电柜处宽度': { zh: '安装电柜处宽度', en: 'Width for Cabinet Installation' },
+      '墙面到喷房门铰链的距离': { zh: '墙面到喷房门铰链的距离', en: 'Distance from wall to booth door hinge' },
+      '喷房小门位置': { zh: '喷房小门位置', en: 'Auxiliary Door Position' },
+      '小门尺寸示意 / Auxiliary Door Dimensions': { zh: '小门尺寸示意', en: 'Auxiliary Door Dimensions' },
+      '门与前墙面距离': { zh: '门与前墙面距离', en: 'Distance from Door to Front Wall' },
+      '门宽': { zh: '门宽', en: 'Door Width' },
+      '墙面烤灯位置': { zh: '墙面烤灯位置', en: 'Wall-Mounted Curing Lamp Position' },
+      '烤灯高度示意 / Lamp Height': { zh: '烤灯高度示意', en: 'Curing Lamp Height' },
+      '烤灯高度示意2 / Lamp Height 2': { zh: '烤灯高度示意2', en: 'Curing Lamp Height 2' },
+      '烤灯下沿至格栅面高度': { zh: '烤灯下沿至格栅面高度', en: 'Lamp Lower Edge to Grating' },
+      '烤灯上沿至格栅面高度': { zh: '烤灯上沿至格栅面高度', en: 'Lamp Upper Edge to Grating' },
+      '烤灯宽度': { zh: '烤灯宽度', en: 'Curing Lamp Width' },
+      '烤灯间距示意 / Lamp Spacing': { zh: '烤灯间距示意', en: 'Curing Lamp Spacing' },
+      '前墙面与烤灯距离': { zh: '前墙面与烤灯距离', en: 'Front Wall to Curing Lamp' },
+      '烤灯间距1': { zh: '烤灯间距1', en: 'Curing Lamp Spacing 1' },
+      '烤灯间距2': { zh: '烤灯间距2', en: 'Curing Lamp Spacing 2' },
+      '气源位置': { zh: '气源位置', en: 'Air Supply Location' },
+      '气源位置示意 / Air Supply Location': { zh: '气源位置示意', en: 'Air Supply Location' },
+      '气源位置描述': { zh: '气源位置描述', en: 'Air Supply Description' },
+      '气源点位照片': { zh: '气源点位照片', en: 'Air Supply Photos' },
+      '上传气源接口照片 / Upload air supply photos': { zh: '上传气源接口照片', en: 'Upload air supply photos' },
+      '220V电源位置': { zh: '220V电源位置', en: '220V Power Supply Location' },
+      '电源位置示意 / Power Supply Location': { zh: '电源位置示意', en: 'Power Supply Location' },
+      '220V电源位置描述': { zh: '220V电源位置描述', en: '220V Power Supply Description' },
+      '电源点位照片': { zh: '电源点位照片', en: 'Power Supply Photos' },
+      '上传电源插座照片 / Upload power supply photos': { zh: '上传电源插座照片', en: 'Upload power supply photos' },
+      '内部截面尺寸示意 / Cross-Section Dimensions': { zh: '内部截面尺寸示意', en: 'Cross-Section Dimensions' },
+      '内部高度': { zh: '内部高度', en: 'Interior Height' },
+      '灯具底部至格栅高度': { zh: '灯具底部至格栅高度', en: 'Lamp Bottom to Grating Height' },
+      '灯具宽度': { zh: '灯具宽度', en: 'Light Fixture Width' },
+      '内部宽度': { zh: '内部宽度', en: 'Interior Width' },
+      '内部长度示意 / Interior Length': { zh: '内部长度示意', en: 'Interior Length' },
+      '内部长度': { zh: '内部长度', en: 'Interior Length' },
+      '测量方法：地坑底部到格栅顶部 / Method: Pit floor to top of grating': { zh: '测量方法：地坑底部到格栅顶部', en: 'Method: from pit floor to top of grating' },
+      '6个深度测量点位置 / 6 Depth Measurement Points': { zh: '6个深度测量点位置', en: '6 Depth Measurement Points' },
+      '深度点1': { zh: '深度点1', en: 'Depth Point 1' },
+      '深度点2': { zh: '深度点2', en: 'Depth Point 2' },
+      '深度点3': { zh: '深度点3', en: 'Depth Point 3' },
+      '深度点4': { zh: '深度点4', en: 'Depth Point 4' },
+      '深度点5': { zh: '深度点5', en: 'Depth Point 5' },
+      '深度点6': { zh: '深度点6', en: 'Depth Point 6' },
+      '地坑宽度': { zh: '地坑宽度', en: 'Pit Width' },
+      '墙边筋宽度': { zh: '墙边筋宽度', en: 'Edge Bar Width' },
+      '地坑宽度 / Pit Width': { zh: '地坑宽度', en: 'Pit Width' },
+      '墙边筋宽度 / Edge Bar Width': { zh: '墙边筋宽度', en: 'Edge Bar Width' },
+      '水泥墩尺寸示意 / Concrete Pier Dimensions': { zh: '水泥墩尺寸示意', en: 'Concrete Pier Dimensions' },
+      '水泥墩长度': { zh: '水泥墩长度', en: 'Concrete Pier Length' },
+      '水泥墩高度': { zh: '水泥墩高度', en: 'Concrete Pier Height' },
+      '斜坡尺寸示意 / Ramp Dimensions': { zh: '斜坡尺寸示意', en: 'Ramp Dimensions' },
+      '平面斜坡长度': { zh: '平面斜坡长度', en: 'Horizontal Ramp Length' },
+      '斜坡高度': { zh: '斜坡高度', en: 'Ramp Height' },
+      '备注': { zh: '备注', en: 'Remarks' },
+      '← 上一步': { zh: '← 上一步', en: '← Back' },
+      '生成预览 / Generate Preview': { zh: '生成预览', en: 'Generate Preview' },
+      '临时保存': { zh: '临时保存', en: 'Save Draft' },
+      '请确认勘测信息 / Please Confirm Survey Info': { zh: '请确认勘测信息', en: 'Please Confirm Survey Info' },
+      '请仔细核对以下内容，确认无误后点击"确认提交" / Please review carefully before submitting': { zh: '请仔细核对以下内容，确认无误后点击"确认提交"', en: 'Please review carefully, then tap "Confirm Submit"' },
+      '⚠️ 暂时无法提交：还有': { zh: '⚠️ 暂时无法提交：还有', en: '⚠️ Submission blocked:' },
+      '项必填未填写': { zh: '项必填未填写', en: 'required field(s) still missing' },
+      '请点击"返回修改"补充以上信息后再提交（已填内容不会丢失）/ Please click "Back to Edit" to complete the fields above — your filled data is kept.': { zh: '请点击"返回修改"补充以上信息后再提交（已填内容不会丢失）', en: 'Tap "Back to Edit" to complete the fields above, then submit. Your filled data is kept.' },
+      '← 返回修改 / Back to Edit': { zh: '← 返回修改', en: '← Back to Edit' },
+      '确认提交 / Confirm Submit': { zh: '确认提交', en: 'Confirm Submit' },
+      '提交成功 / Submitted Successfully': { zh: '提交成功', en: 'Submitted Successfully' },
+      '您的勘测信息已成功提交，我们将尽快与您联系 / Your survey has been submitted, we will contact you soon.': { zh: '您的勘测信息已成功提交，我们将尽快与您联系', en: 'Your survey has been submitted. We will contact you soon.' },
+      '此勘测链接已失效，如需再次提交请联系管理员获取新链接 / This link has expired. Please contact admin for a new link if you need to submit again.': { zh: '此勘测链接已失效，如需再次提交请联系管理员获取新链接', en: 'This link has expired. Please contact admin for a new link if you need to submit again.' },
+      '🔄 旋转 / Rotate': { zh: '🔄 旋转', en: '🔄 Rotate' }
+    };
+
+    // 占位符词典：key 为 placeholder 属性原文
+    const I18N_PLACEHOLDER = {
+      '如：某某4S店喷房勘测 / e.g.: XX 4S Dealership Booth Survey': { zh: '如：某某4S店喷房勘测', en: 'e.g.: XX 4S Dealership Booth Survey' },
+      '例：中国浙江省台州市温岭市泽国镇泽楚路926号2幢\ne.g.: Building 2, No.926, Zechu Rd, Zeguo Town, Wenling, Taizhou, Zhejiang, China': { zh: '例：中国浙江省台州市温岭市泽国镇泽楚路926号2幢', en: 'e.g.: Building 2, No.926, Zechu Rd, Zeguo Town, Wenling, Taizhou, Zhejiang, China' },
+      '例：奔驰、奥迪、特斯拉 / e.g.: Mercedes-Benz, Audi, Tesla': { zh: '例：奔驰、奥迪、特斯拉', en: 'e.g.: Mercedes-Benz, Audi, Tesla' },
+      '例：顶部热源或电加热 / e.g.: Overhead Heater or Electric Heating': { zh: '例：顶部热源或电加热', en: 'e.g.: Overhead Heater or Electric Heating' },
+      '例：8bar / e.g.: 8 bar': { zh: '例：8bar', en: 'e.g.: 8 bar' },
+      '例：60℃ / e.g.: 60℃': { zh: '例：60℃', en: 'e.g.: 60℃' },
+      '例：一楼 / 三楼 / e.g.: 1st Floor / 3rd Floor': { zh: '例：一楼 / 三楼', en: 'e.g.: 1st Floor / 3rd Floor' },
+      '例：5450×2255 / e.g.: 5450×2255 (单位mm)': { zh: '例：5450×2255（单位mm）', en: 'e.g.: 5450×2255 (mm)' },
+      '例：无 / 有钢筋 / e.g.: None / Has rebar': { zh: '例：无 / 有钢筋', en: 'e.g.: None / Has rebar' },
+      '例：左后（站在喷房外正对大门）/ e.g.: Left Rear': { zh: '例：左后（站在喷房外正对大门）', en: 'e.g.: Left Rear (standing outside, facing the main door)' },
+      '描述气源接口位置 / Describe air supply outlet location': { zh: '描述气源接口位置', en: 'Describe the air supply outlet location' },
+      '描述电源插座位置 / Describe power outlet location': { zh: '描述电源插座位置', en: 'Describe the power outlet location' },
+      '其他需要说明的事项 / Other notes（如无请填"无"）': { zh: '其他需要说明的事项（如无请填"无"）', en: 'Other notes (enter "None" if none)' }
+    };
+
+    // 遍历文本节点，将命中文本的中文节点按语言替换（保留首尾空白）
+    function applyI18nText(root) {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: function(node) {
+          const p = node.parentNode;
+          if (p && (p.nodeName === 'SCRIPT' || p.nodeName === 'STYLE')) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => {
+        const raw = node.nodeValue;
+        if (!raw || !/[\u4e00-\u9fff]/.test(raw)) return;
+        const key = raw.trim();
+        if (!key || !I18N_TEXT[key]) return;
+        const entry = I18N_TEXT[key];
+        node.nodeValue = raw.match(/^\s*/)[0] + (FORM_LANG === 'zh' ? entry.zh : entry.en) + raw.match(/\s*$/)[0];
+      });
+    }
+
+    // 按语言替换占位符（含「例：数字」通用兜底）
+    function applyI18nPlaceholders(root) {
+      root.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
+        const val = el.getAttribute('placeholder');
+        if (!val) return;
+        let entry = I18N_PLACEHOLDER[val];
+        let out;
+        if (entry) {
+          out = (FORM_LANG === 'zh') ? entry.zh : entry.en;
+        } else {
+          const m = val.match(/^例：([0-9×.,]+)$/);
+          if (m) out = (FORM_LANG === 'zh') ? val : 'e.g.: ' + m[1];
+          else return;
+        }
+        el.setAttribute('placeholder', out);
+      });
+    }
+
+    // 应用语言：双语不做任何替换（默认排版），zh/en 加 body 类 + 词典替换
+    function applyLanguage(lang) {
+      FORM_LANG = (lang === 'zh' || lang === 'en') ? lang : 'bi';
+      if (FORM_LANG === 'bi') return;
+      document.body.classList.add('lang-' + FORM_LANG);
+      applyI18nText(document.body);
+      applyI18nPlaceholders(document.body);
+    }
+
     // ========== 引导模式（分步表单）状态 ==========
     let currentMode = 'wizard';                 // 'wizard' 引导模式 | 'full' 整页模式
     let currentStep = 1;                        // 当前步骤（1-based）
@@ -1326,35 +1525,43 @@
     const WIZARD_STEPS = [
       {
         n: 1, zh: '基本信息', en: 'Basic Information',
-        desc: '填写勘测名称、现场地址、喷涂车型、加热方式、最高气压/温度、楼板厚度、所在楼层及地下管线情况。/ Fill in survey name, site address, vehicle types, heating method, max air pressure & temperature, slab thickness, floor level and underground utilities.'
+        descZh: '填写勘测名称、现场地址、喷涂车型、加热方式、最高气压/温度、楼板厚度、所在楼层及地下管线情况。',
+        descEn: 'Fill in the survey name, site address, vehicle types, heating method, max air pressure & temperature, slab thickness, floor level and underground utilities.'
       },
       {
         n: 2, zh: '控制柜与小门', en: 'Control Cabinet & Auxiliary Door',
-        desc: '测量电柜安装宽度、小门位置、门与前墙面距离及门宽（单位 mm）。/ Measure cabinet installation width, auxiliary door position, door-to-front-wall distance and door width (in mm).'
+        descZh: '测量电柜安装宽度、小门位置、门与前墙面距离及门宽（单位 mm）。',
+        descEn: 'Measure the cabinet installation width, auxiliary door position, door-to-front-wall distance and door width (in mm).'
       },
       {
-        n: 3, zh: '墙面烤灯', en: 'Wall-Mounted Lamps',
-        desc: '如现场墙面有烤灯，请选择"有"并测量各项尺寸；如无请选择"无"，可直接进入下一步。/ If wall-mounted lamps exist, select "Yes" and measure the dimensions; otherwise select "No" to skip.'
+        n: 3, zh: '墙面烤灯', en: 'Wall-Mounted Curing Lamps',
+        descZh: '如现场墙面有烤灯，请选择"有"并测量各项尺寸；如无请选择"无"，可直接进入下一步。',
+        descEn: 'If wall-mounted curing lamps exist, select "Yes" and measure each dimension; otherwise select "No" to skip this step.'
       },
       {
         n: 4, zh: '气源与电源', en: 'Air Supply & Power',
-        desc: '描述气源接口与 220V 电源插座的位置，并可上传点位照片（气源/电源各最多 3 张）。/ Describe the air supply outlet and 220V power outlet locations, and upload photos (max 3 each).'
+        descZh: '描述气源接口与 220V 电源插座的位置，并可上传点位照片（气源/电源各最多 3 张）。',
+        descEn: 'Describe the air supply outlet and 220V power outlet locations, and upload photos of each point (max 3 each).'
       },
       {
-        n: 5, zh: '喷房内部尺寸', en: 'Internal Dimensions',
-        desc: '测量喷房内部高度、宽度、长度，以及灯具底部至格栅高度、灯具宽度（单位 mm）。/ Measure interior height, width and length, plus light-bottom-to-grating height and light fixture width (in mm).'
+        n: 5, zh: '喷房内部尺寸', en: 'Booth Internal Dimensions',
+        descZh: '测量喷房内部高度、宽度、长度，以及灯具底部至格栅高度、灯具宽度（单位 mm）。',
+        descEn: 'Measure the booth interior height, width and length, plus the lamp-bottom-to-grating height and light fixture width (in mm).'
       },
       {
         n: 6, zh: '地坑尺寸', en: 'Pit Dimensions',
-        desc: '测量 6 个深度点、地坑宽度、墙边筋宽度；如有水泥墩或斜坡，请选择"有"并填写尺寸。/ Measure 6 depth points, pit width and edge bar width; select "Yes" and fill in dimensions if concrete pier or ramp exists.'
+        descZh: '测量 6 个深度点、地坑宽度、墙边筋宽度；如有水泥墩或斜坡，请选择"有"并填写尺寸。',
+        descEn: 'Measure the 6 depth points, pit width and edge bar width; if a concrete pier or ramp exists, select "Yes" and fill in its dimensions.'
       },
       {
         n: 7, zh: '现场照片', en: 'Site Photos',
-        desc: '上传喷房内部及四周照片（最多 9 张）。建议包含：大门全景、内部全景、底部格栅、立柱。/ Upload booth interior & surrounding photos (max 9). Suggested: entrance, interior, grating, pillars.'
+        descZh: '上传喷房内部及四周照片（最多 9 张）。建议包含：大门全景、内部全景、底部格栅、立柱。',
+        descEn: 'Upload photos of the booth interior and surroundings (max 9). Suggested views: entrance, interior overview, grating and pillars.'
       },
       {
         n: 8, zh: '备注与确认', en: 'Remarks & Confirm',
-        desc: '补充其他需要说明的事项（如无可填"无"），然后点击"生成预览"核对并提交。/ Add any other notes (or "None"), then click "Generate Preview" to review and submit.'
+        descZh: '补充其他需要说明的事项（如无可填"无"），然后点击"生成预览"核对并提交。',
+        descEn: 'Add any other notes (or "None" if none), then click "Generate Preview" to review and submit.'
       }
     ];
 
@@ -1407,7 +1614,7 @@
       if (stepper.children.length !== WIZARD_STEPS.length) {
         stepper.innerHTML = WIZARD_STEPS.map(s =>
           '<div class="wz-chip" data-n="' + s.n + '" onclick="stepperJump(' + s.n + ')">' +
-          '<span class="wz-num">' + s.n + '</span><span class="wz-label">' + s.zh + '</span></div>'
+          '<span class="wz-num">' + s.n + '</span><span class="wz-label">' + t(s.zh, s.en) + '</span></div>'
         ).join('');
       }
       WIZARD_STEPS.forEach(s => {
@@ -1441,17 +1648,27 @@
         const sec = document.querySelector('.section[data-step="' + currentStep + '"]');
         if (sec) sec.classList.add('wz-active');
       }
-      // 步骤标题与说明
+      // 步骤标题与说明（双语模式下中文一行、英文一行）
       const step = WIZARD_STEPS[currentStep - 1];
-      document.getElementById('wzStepTitle').innerHTML =
-        '第 ' + currentStep + ' 步 / Step ' + currentStep + ' of ' + WIZARD_STEPS.length +
-        '：' + step.zh + ' <span class="en">/ ' + step.en + '</span>';
-      document.getElementById('wzStepDesc').textContent = step.desc;
+      const titleEl = document.getElementById('wzStepTitle');
+      const descEl = document.getElementById('wzStepDesc');
+      if (FORM_LANG === 'en') {
+        titleEl.textContent = 'Step ' + currentStep + ' of ' + WIZARD_STEPS.length + ': ' + step.en;
+        descEl.textContent = step.descEn;
+      } else if (FORM_LANG === 'zh') {
+        titleEl.textContent = '第 ' + currentStep + ' 步：' + step.zh;
+        descEl.textContent = step.descZh;
+      } else {
+        titleEl.innerHTML = '第 ' + currentStep + ' 步 / Step ' + currentStep + ' of ' + WIZARD_STEPS.length +
+          '：' + step.zh + ' <span class="en">/ ' + step.en + '</span>';
+        descEl.innerHTML = escapeHtml(step.descZh) +
+          '<span class="desc-en-line">' + escapeHtml(step.descEn) + '</span>';
+      }
       // 底部按钮
       document.getElementById('wizardBackBtn').disabled = (currentStep === 1);
       const nextBtn = document.getElementById('wizardNextBtn');
       const isLast = (currentStep === WIZARD_STEPS.length);
-      nextBtn.textContent = isLast ? '生成预览 / Generate Preview' : '下一步 / Next →';
+      nextBtn.textContent = isLast ? t('生成预览', 'Generate Preview') : t('下一步', 'Next') + ' →';
       nextBtn.classList.toggle('final', isLast);
       refreshStepper();
       updateProgressText(calcProgressPct());
@@ -1466,7 +1683,7 @@
 
     function stepperJump(n) {
       if (n >= 1 && n <= maxStepReached) goToStep(n);
-      else showToast('请先完成当前步骤 / Please finish the current step first', 'info');
+      else showToast(t('请先完成当前步骤', 'Please finish the current step first'), 'info');
     }
 
     function wizardBack() {
@@ -1480,7 +1697,7 @@
       // 软导航：必填未补齐也允许进入下一步（先填已有信息），仅给提示
       const missing = countStepMissing(currentStep);
       if (missing > 0) {
-        showToast('第 ' + currentStep + ' 步还有 ' + missing + ' 项必填未填，可先继续，提交前需补全 / Step ' + currentStep + ': ' + missing + ' required field(s) left — you may continue, but all are needed before submit', 'info');
+        showToast(t('第 ' + currentStep + ' 步还有 ' + missing + ' 项必填未填，可先继续，提交前需补全', 'Step ' + currentStep + ': ' + missing + ' required field(s) left — you may continue, but all must be completed before submit'), 'info');
       }
       if (currentStep < WIZARD_STEPS.length) {
         goToStep(currentStep + 1);
@@ -1520,7 +1737,7 @@
       document.getElementById('msWizard').classList.toggle('active', currentMode === 'wizard');
       document.getElementById('msFull').classList.toggle('active', currentMode === 'full');
       document.getElementById('progressLabelText').textContent =
-        currentMode === 'wizard' ? '引导模式 / Guided Mode' : '填写进度 / Progress';
+        currentMode === 'wizard' ? t('引导模式', 'Guided Mode') : t('填写进度', 'Progress');
       if (currentMode === 'wizard') renderWizard();
       else updateProgress();
       window.scrollTo({ top: 0, behavior: 'auto' });
@@ -1638,24 +1855,26 @@
       if (files.length === 0) return;
       const remaining = PHOTO_LIMITS[category] - photoStore[category].length;
       if (remaining <= 0) {
-        showToast(`${category === 'booth' ? '喷房' : category === 'air' ? '气源' : '电源'}照片最多 ${PHOTO_LIMITS[category]} 张`, 'error');
+        const catZh = category === 'booth' ? '喷房' : category === 'air' ? '气源' : '电源';
+        const catEn = category === 'booth' ? 'booth' : category === 'air' ? 'air supply' : 'power supply';
+        showToast(t(catZh + '照片最多 ' + PHOTO_LIMITS[category] + ' 张', 'Max ' + PHOTO_LIMITS[category] + ' ' + catEn + ' photos'), 'error');
         input.value = '';
         return;
       }
       const toProcess = files.slice(0, remaining);
       if (files.length > remaining) {
-        showToast(`最多 ${PHOTO_LIMITS[category]} 张，已自动截取前 ${remaining} 张`, 'info');
+        showToast(t('最多 ' + PHOTO_LIMITS[category] + ' 张，已自动截取前 ' + remaining + ' 张', 'Max ' + PHOTO_LIMITS[category] + ' photos — only the first ' + remaining + ' were kept'), 'info');
       }
       const progressEl = document.getElementById(category + 'Progress');
       progressEl.classList.add('show');
       for (let i = 0; i < toProcess.length; i++) {
-        progressEl.textContent = `正在处理第 ${i + 1}/${toProcess.length} 张... / Processing ${i + 1}/${toProcess.length}...`;
+        progressEl.textContent = t(`正在处理第 ${i + 1}/${toProcess.length} 张...`, `Processing ${i + 1}/${toProcess.length}...`);
         try {
           const dataUrl = await compressImage(toProcess[i]);
           photoStore[category].push(dataUrl);
           renderThumbList(category);
         } catch (err) {
-          showToast('图片处理失败 / Image processing failed', 'error');
+          showToast(t('图片处理失败', 'Image processing failed'), 'error');
         }
       }
       progressEl.classList.remove('show');
@@ -1712,7 +1931,7 @@
       // 如果要隐藏且区域内有已填内容，确认后再清空
       if (!show && section.classList.contains('visible')) {
         const hasContent = Array.from(section.querySelectorAll('input, textarea')).some(el => el.value && el.value.trim());
-        if (hasContent && !confirm('切换为"无"将清空已填写的内容，确定吗？\nSwitching to "No" will clear filled content. Continue?')) {
+        if (hasContent && !confirm(t('切换为"无"将清空已填写的内容，确定吗？', 'Switching to "No" will clear the filled content. Continue?'))) {
           // 恢复选中"有"
           const radio = form.querySelector('input[name="has_' + name + '"][value="yes"]');
           if (radio) radio.checked = true;
@@ -1772,7 +1991,7 @@
           const errDiv = el.closest('.form-group')?.querySelector('.field-error');
           if (errDiv) errDiv.classList.add('show');
           if (!firstInvalid) firstInvalid = el;
-          const label = FIELD_LABELS_MAP[el.name] || el.name;
+          const label = fieldLabel(el.name);
           invalidFields.push({ el, label });
         }
       }
@@ -1782,7 +2001,7 @@
         const boothErr = document.getElementById('boothPhotoError');
         if (boothErr) boothErr.classList.add('show');
         if (!firstInvalid) firstInvalid = document.getElementById('boothPhotos');
-        invalidFields.push({ el: document.getElementById('boothPhotos'), label: '喷房现场照片' });
+        invalidFields.push({ el: document.getElementById('boothPhotos'), label: t('喷房现场照片', 'Booth Photos') });
       }
 
       // 显示错误汇总
@@ -1852,7 +2071,7 @@
       const el = document.getElementById('progressText');
       if (!el) return;
       if (currentMode === 'wizard') {
-        el.textContent = '第' + currentStep + '步/共' + WIZARD_STEPS.length + '步 · ' + pct + '%';
+        el.textContent = t('第' + currentStep + '步/共' + WIZARD_STEPS.length + '步 · ' + pct + '%', 'Step ' + currentStep + '/' + WIZARD_STEPS.length + ' · ' + pct + '%');
       } else {
         el.textContent = pct + '%';
       }
@@ -1925,7 +2144,7 @@
       booth_level: { zh: '喷房楼层', en: 'Booth Level' },
       elevator_dimensions: { zh: '电梯尺寸', en: 'Elevator Dimensions' },
       underground_utilities: { zh: '地下管线情况', en: 'Underground Utilities' },
-      cabinet_install_width: { zh: '电柜安装宽度', en: 'Cabinet Install Width' },
+      cabinet_install_width: { zh: '电柜安装宽度', en: 'Cabinet Installation Width' },
       aux_door_position: { zh: '小门位置', en: 'Auxiliary Door Position' },
       door_to_front_wall: { zh: '门到前墙距离', en: 'Door to Front Wall' },
       door_width: { zh: '门宽', en: 'Door Width' },
@@ -1938,7 +2157,7 @@
       air_supply_location: { zh: '气源位置', en: 'Air Supply Location' },
       power_supply_location: { zh: '220V电源位置', en: '220V Power Location' },
       interior_height: { zh: '内部高度', en: 'Interior Height' },
-      light_to_grate_height: { zh: '灯具到格栅高度', en: 'Light to Grating Ht' },
+      light_to_grate_height: { zh: '灯具到格栅高度', en: 'Lamp Bottom to Grating Ht' },
       light_width: { zh: '灯具宽度', en: 'Light Fixture Width' },
       interior_width: { zh: '内部宽度', en: 'Interior Width' },
       interior_length: { zh: '内部长度', en: 'Interior Length' },
@@ -1960,7 +2179,16 @@
     function lbl(key) {
       const l = PREVIEW_LABELS[key];
       if (!l) return key;
+      if (FORM_LANG === 'zh') return l.zh;
+      if (FORM_LANG === 'en') return l.en;
       return l.zh + ' / ' + l.en;
+    }
+
+    // 字段标签（错误汇总用）：中文取 FIELD_LABELS_MAP，英文取 PREVIEW_LABELS.en
+    function fieldLabel(name) {
+      const zh = FIELD_LABELS_MAP[name] || name;
+      const en = (PREVIEW_LABELS[name] && PREVIEW_LABELS[name].en) || zh;
+      return FORM_LANG === 'en' ? en : zh;
     }
 
     const MM_FIELDS = new Set([
@@ -1988,82 +2216,82 @@
 
     function generatePreview(data) {
       let html = '';
-      html += '<div class="preview-section"><h3>一、现场概述 / I. Site Overview</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>' + t('一、现场概述', 'I. Site Overview') + '</h3><div class="preview-grid">';
       ['survey_name','location','main_vehicle_types','heating_method','max_air_pressure','max_temperature','floor_thickness','booth_level'].forEach(f => {
         const full = (f === 'location') ? ' full' : '';
         html += '<div class="preview-item' + full + '"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
       });
-      html += '<div class="preview-item full"><span class="pk">货梯 / Freight Elevator：</span><span class="pv">' + (data.has_elevator === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
+      html += '<div class="preview-item full"><span class="pk">' + t('货梯', 'Freight Elevator') + '：</span><span class="pv">' + (data.has_elevator === 'yes' ? t('有', 'Yes') : t('无', 'No')) + '</span></div>';
       if (data.has_elevator === 'yes' && data.elevator_dimensions) {
         html += '<div class="preview-item full"><span class="pk">' + lbl('elevator_dimensions') + '：</span><span class="pv">' + escapeHtml(data.elevator_dimensions) + ' mm</span></div>';
       }
       html += '<div class="preview-item full"><span class="pk">' + lbl('underground_utilities') + '：</span><span class="pv">' + formatValue('underground_utilities', data.underground_utilities) + '</span></div>';
       const boothPhotos = (data.photos||[]).filter(p=>p.category==='booth');
       if (boothPhotos.length > 0) {
-        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">喷房内部及四周照片 / Booth Interior & Surroundings（' + boothPhotos.length + '张）</div><div class="preview-photo-grid">';
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">' + t('喷房内部及四周照片（' + boothPhotos.length + '张）', 'Booth Interior & Surrounding Photos (' + boothPhotos.length + ')') + '</div><div class="preview-photo-grid">';
         boothPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="喷房照片 ' + (i+1) + '">'; });
         html += '</div></div></div>';
       }
       html += '</div></div>';
 
-      html += '<div class="preview-section"><h3>控制柜与小门 / Control Cabinet & Aux Door</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>' + t('控制柜与小门', 'Control Cabinet & Auxiliary Door') + '</h3><div class="preview-grid">';
       ['cabinet_install_width','aux_door_position','door_to_front_wall','door_width'].forEach(f => {
         html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
       });
       html += '</div></div>';
 
       if (data.has_lamp === 'yes') {
-        html += '<div class="preview-section"><h3>墙面烤灯 / Wall-Mounted Lamps</h3><div class="preview-grid">';
+        html += '<div class="preview-section"><h3>' + t('墙面烤灯', 'Wall-Mounted Curing Lamps') + '</h3><div class="preview-grid">';
         ['lamp_lower_height','lamp_upper_height','lamp_width','front_wall_to_lamp','lamp_to_lamp_1','lamp_to_lamp_2'].forEach(f => {
           html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
         });
         html += '</div></div>';
       }
 
-      html += '<div class="preview-section"><h3>气源与电源 / Air Supply & Power</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>' + t('气源与电源', 'Air Supply & Power') + '</h3><div class="preview-grid">';
       html += '<div class="preview-item full"><span class="pk">' + lbl('air_supply_location') + '：</span><span class="pv">' + formatValue('air_supply_location', data.air_supply_location) + '</span></div>';
       const airPhotos = (data.photos||[]).filter(p=>p.category==='air');
       if (airPhotos.length > 0) {
-        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">气源点位照片 / Air Supply Photos（' + airPhotos.length + '张）</div><div class="preview-photo-grid">';
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">' + t('气源点位照片（' + airPhotos.length + '张）', 'Air Supply Photos (' + airPhotos.length + ')') + '</div><div class="preview-photo-grid">';
         airPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="气源照片 ' + (i+1) + '">'; });
         html += '</div></div></div>';
       }
       html += '<div class="preview-item full"><span class="pk">' + lbl('power_supply_location') + '：</span><span class="pv">' + formatValue('power_supply_location', data.power_supply_location) + '</span></div>';
       const powerPhotos = (data.photos||[]).filter(p=>p.category==='power');
       if (powerPhotos.length > 0) {
-        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">电源点位照片 / Power Supply Photos（' + powerPhotos.length + '张）</div><div class="preview-photo-grid">';
+        html += '<div class="preview-item full"><div class="preview-photos"><div class="photo-label">' + t('电源点位照片（' + powerPhotos.length + '张）', 'Power Supply Photos (' + powerPhotos.length + ')') + '</div><div class="preview-photo-grid">';
         powerPhotos.forEach((p,i) => { html += '<img src="' + p.data + '" onclick="previewExample(this.src)" alt="电源照片 ' + (i+1) + '">'; });
         html += '</div></div></div>';
       }
       html += '</div></div>';
 
-      html += '<div class="preview-section"><h3>喷房内部尺寸 / Internal Dimensions</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>' + t('喷房内部尺寸', 'Booth Internal Dimensions') + '</h3><div class="preview-grid">';
       ['interior_height','light_to_grate_height','light_width','interior_width','interior_length'].forEach(f => {
         html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
       });
       html += '</div></div>';
 
-      html += '<div class="preview-section"><h3>地坑尺寸 / Pit Dimensions</h3><div class="preview-grid">';
+      html += '<div class="preview-section"><h3>' + t('地坑尺寸', 'Pit Dimensions') + '</h3><div class="preview-grid">';
       ['pit_depth_1','pit_depth_2','pit_depth_3','pit_depth_4','pit_depth_5','pit_depth_6','pit_width','edge_bar_width'].forEach(f => {
         html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
       });
-      html += '<div class="preview-item full"><span class="pk">水泥墩 / Concrete Pier：</span><span class="pv">' + (data.has_pier === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
+      html += '<div class="preview-item full"><span class="pk">' + t('水泥墩', 'Concrete Pier') + '：</span><span class="pv">' + (data.has_pier === 'yes' ? t('有', 'Yes') : t('无', 'No')) + '</span></div>';
       if (data.has_pier === 'yes') {
         ['concrete_pier_length','concrete_pier_height'].forEach(f => {
           html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
         });
       }
-      html += '<div class="preview-item full"><span class="pk">斜坡 / Ramp：</span><span class="pv">' + (data.has_ramp === 'yes' ? '有 / Yes' : '无 / No') + '</span></div>';
+      html += '<div class="preview-item full"><span class="pk">' + t('斜坡', 'Ramp') + '：</span><span class="pv">' + (data.has_ramp === 'yes' ? t('有', 'Yes') : t('无', 'No')) + '</span></div>';
       if (data.has_ramp === 'yes') {
         ['ramp_length','ramp_height'].forEach(f => {
           html += '<div class="preview-item"><span class="pk">' + lbl(f) + '：</span><span class="pv">' + formatValue(f, data[f]) + '</span></div>';
         });
       }
-      html += '<div class="preview-item full"><div class="example-img" style="margin-top:12px;"><img src="images/example_pit_depth.png" alt="地坑深度测量点" style="max-height:260px;"><div class="caption">地坑6个深度测量点位置 / 6 Pit Depth Measurement Points</div></div></div>';
+      html += '<div class="preview-item full"><div class="example-img" style="margin-top:12px;"><img src="images/example_pit_depth.png" alt="地坑深度测量点" style="max-height:260px;"><div class="caption">' + t('地坑6个深度测量点位置', '6 Pit Depth Measurement Points') + '</div></div></div>';
       html += '</div></div>';
 
-      html += '<div class="preview-section"><h3>备注 / Remarks</h3><div class="preview-grid">';
-      html += '<div class="preview-item full"><span class="pv">' + escapeHtml(data.remarks || '无 / None') + '</span></div>';
+      html += '<div class="preview-section"><h3>' + t('备注', 'Remarks') + '</h3><div class="preview-grid">';
+      html += '<div class="preview-item full"><span class="pv">' + escapeHtml(data.remarks || t('无', 'None')) + '</span></div>';
       html += '</div></div>';
 
       document.getElementById('previewContent').innerHTML = html;
@@ -2090,7 +2318,7 @@
       const statusEl = document.getElementById('saveStatus');
       if (saveBtn) saveBtn.disabled = true;
       statusEl.className = 'save-status saving';
-      statusEl.textContent = isAuto ? '自动保存中... / Auto-saving...' : '保存中... / Saving...';
+      statusEl.textContent = isAuto ? t('自动保存中...', 'Auto-saving...') : t('保存中...', 'Saving...');
       const data = collectFormData();
       saveLocalDraft(); // 同时存本地（U10）
       try {
@@ -2103,18 +2331,18 @@
         if (res.ok) {
           const timeStr = new Date().toLocaleString('zh-CN');
           statusEl.className = 'save-status saved';
-          statusEl.textContent = (isAuto ? '已自动保存 / Auto-saved' : '已保存 / Saved') + ': ' + timeStr;
+          statusEl.textContent = (isAuto ? t('已自动保存', 'Auto-saved') : t('已保存', 'Saved')) + ': ' + timeStr;
         } else {
           statusEl.className = 'save-status error';
-          statusEl.textContent = result.error || '保存失败 / Save failed';
+          statusEl.textContent = result.error || t('保存失败', 'Save failed');
         }
       } catch (err) {
         statusEl.className = 'save-status error';
-        statusEl.textContent = '网络错误，本地已暂存 / Network error, saved locally';
+        statusEl.textContent = t('网络错误，本地已暂存', 'Network error — saved locally');
       } finally {
         if (saveBtn) {
           saveBtn.disabled = false;
-          saveBtn.innerHTML = '临时保存<br><span style="font-size:10px;font-weight:400;">Save Draft</span>';
+          saveBtn.innerHTML = t('临时保存<br><span class="en" style="font-size:10px;font-weight:400;">Save Draft</span>', 'Save Draft');
         }
       }
     }
@@ -2163,7 +2391,7 @@
         const statusEl = document.getElementById('saveStatus');
         const timeStr = new Date(survey.updated_at || survey.created_at).toLocaleString('zh-CN');
         statusEl.className = 'save-status saved';
-        statusEl.textContent = '上次保存时间 / Last saved: ' + timeStr;
+        statusEl.textContent = t('上次保存时间', 'Last saved') + ': ' + timeStr;
       }
       updateProgress();
     }
@@ -2174,13 +2402,13 @@
       const invalidEl = validateForm();
       if (invalidEl) {
         updatePreviewWarn();
-        showToast('还有 ' + (window._invalidFields || []).length + ' 项必填未填写，请返回修改后再提交 / ' + (window._invalidFields || []).length + ' required field(s) missing — please complete before submitting', 'error');
+        showToast(t('还有 ' + (window._invalidFields || []).length + ' 项必填未填写，请返回修改后再提交', (window._invalidFields || []).length + ' required field(s) missing — please go back and complete them before submitting'), 'error');
         const warn = document.getElementById('previewWarn');
         if (warn) warn.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       confirmBtn.disabled = true;
-      confirmBtn.textContent = '提交中... / Submitting...';
+      confirmBtn.textContent = t('提交中...', 'Submitting...');
       const data = collectFormData();
       try {
         const res = await fetch('/api/submit', {
@@ -2193,10 +2421,10 @@
           const now = new Date();
           const timeStr = now.toLocaleString('zh-CN');
           document.getElementById('successInfo').innerHTML =
-            '<div><strong>勘测名称 / Survey Name：</strong>' + escapeHtml(data.survey_name || '-') + '</div>' +
-            '<div><strong>客户 / Customer：</strong>' + escapeHtml(data.customer_name || '-') + '</div>' +
-            '<div><strong>提交时间 / Submitted At：</strong>' + timeStr + '</div>' +
-            '<div style="margin-top:8px;color:#888;font-size:12px;">记录编号 / Record ID：' + (result.id || '-') + '</div>';
+            '<div><strong>' + t('勘测名称', 'Survey Name') + '：</strong>' + escapeHtml(data.survey_name || '-') + '</div>' +
+            '<div><strong>' + t('客户', 'Customer') + '：</strong>' + escapeHtml(data.customer_name || '-') + '</div>' +
+            '<div><strong>' + t('提交时间', 'Submitted At') + '：</strong>' + timeStr + '</div>' +
+            '<div style="margin-top:8px;color:#888;font-size:12px;">' + t('记录编号', 'Record ID') + '：' + (result.id || '-') + '</div>';
           form.reset();
           photoStore.booth = []; photoStore.air = []; photoStore.power = [];
           renderThumbList('booth'); renderThumbList('air'); renderThumbList('power');
@@ -2217,13 +2445,13 @@
           hasSubmitted = true;
           history.pushState({ page: 'success' }, '', '');
         } else {
-          showToast(result.error || '提交失败 / Submit failed', 'error');
+          showToast(result.error || t('提交失败', 'Submit failed'), 'error');
         }
       } catch (err) {
-        showToast('网络错误，请重试 / Network error, please retry', 'error');
+        showToast(t('网络错误，请重试', 'Network error, please retry'), 'error');
       } finally {
         confirmBtn.disabled = false;
-        confirmBtn.textContent = '确认提交 / Confirm Submit';
+        confirmBtn.textContent = t('确认提交', 'Confirm Submit');
       }
     }
 
@@ -2239,20 +2467,22 @@
         const res = await fetch('/api/verify-code?code=' + encodeURIComponent(code));
         const data = await res.json();
         if (data.valid) {
+          // 应用后台指定的收集表语言（bi 双语 / zh 中文 / en 英文）
+          applyLanguage(data.language);
           document.getElementById('formContainer').style.display = 'block';
           document.getElementById('inviteCode').value = data.code;
           currentCustomerName = data.customer_name;
           const bannerEl = document.getElementById('customerBanner');
-          bannerEl.innerHTML = '客户 / Customer：<strong></strong>';
+          bannerEl.innerHTML = t('客户', 'Customer') + '：<strong></strong>';
           bannerEl.querySelector('strong').textContent = data.customer_name;
-          document.title = '现场喷房勘测 - ' + data.customer_name;
+          document.title = t('现场喷房勘测', 'On-site Spray Booth Survey') + ' - ' + data.customer_name;
           // 优先回填服务端草稿，其次本地草稿（U10）
           if (data.survey) {
             backfillForm(data.survey);
           } else {
             const local = loadLocalDraft();
             if (local) {
-              if (confirm('检测到本地未提交的草稿，是否恢复？\nRecover unsaved local draft?')) {
+              if (confirm(t('检测到本地未提交的草稿，是否恢复？', 'Recover the unsaved local draft?'))) {
                 backfillForm(local);
               } else {
                 clearLocalDraft();
@@ -2294,7 +2524,7 @@
           section.classList.remove('collapsed');
         }
         invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        showToast('请填写所有必填项 / Please fill in all required fields', 'error');
+        showToast(t('请填写所有必填项', 'Please fill in all required fields'), 'error');
         return;
       }
       const data = collectFormData();

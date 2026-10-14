@@ -107,7 +107,8 @@ async function initDB() {
       "ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'submitted'",
       'ALTER TABLE booth_surveys ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
       'ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS used BOOLEAN DEFAULT FALSE',
-      'ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMP'
+      'ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS used_at TIMESTAMP',
+      "ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS language VARCHAR(10) DEFAULT 'bi'"
     ];
     for (const sql of alterStatements) {
       await client.query(sql);
@@ -397,8 +398,9 @@ function generateCode() {
   return code;
 }
 
-// 创建邀请码
-async function createInviteCode(customerName, description) {
+// 创建邀请码（language: 'zh' 中文 | 'en' 英文 | 'bi' 中英双语，默认双语）
+async function createInviteCode(customerName, description, language) {
+  const lang = ['zh', 'en', 'bi'].includes(language) ? language : 'bi';
   let code = null;
   // 确保唯一，最多重试 10 次（修复 S8：重试耗尽后抛错而非静默插入重复）
   for (let i = 0; i < 10; i++) {
@@ -413,8 +415,8 @@ async function createInviteCode(customerName, description) {
     throw new Error('邀请码生成失败：重试 10 次仍冲突，请稍后重试');
   }
   const result = await pool.query(
-    'INSERT INTO invite_codes (code, customer_name, description) VALUES ($1, $2, $3) RETURNING *',
-    [code, customerName, description || null]
+    'INSERT INTO invite_codes (code, customer_name, description, language) VALUES ($1, $2, $3, $4) RETURNING *',
+    [code, customerName, description || null, lang]
   );
   return result.rows[0];
 }
