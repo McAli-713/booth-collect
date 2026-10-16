@@ -415,6 +415,9 @@
       white-space: nowrap;
     }
     /* 照片 */
+    .detail-loading {
+      padding: 40px 0; text-align: center; color: #888; font-size: 14px;
+    }
     .detail-photos { margin-top: 16px; }
     .photo-grid {
       display: grid;
@@ -1152,28 +1155,43 @@
       }).map(p => typeof p === 'string' ? p : (p.data || p.url || '')).filter(Boolean);
     }
 
-    function renderPhotoGrid(photos, label) {
+    function renderPhotoGrid(photos, label, category) {
       if (!photos || photos.length === 0) return '';
       let html = '<div class="inline-photos"><div class="photo-label">' + label + '（' + photos.length + '张）</div><div class="photo-grid">';
       photos.forEach((src, i) => {
-        const safeSrc = escapeHtml(src);
-        html += '<img src="' + safeSrc + '" alt="照片' + (i+1) + '" onclick="openPhotoPreview(\'' + safeSrc.replace(/'/g, "\\'") + '\')">';
+        // 修复：不把完整 base64 内联进 onclick 属性——会导致 DOM 体积翻倍（13MB→26MB）、
+        // 主线程长时间阻塞，表现为点击「详情」毫无反应。改为按 分类+索引 引用。
+        html += '<img src="' + escapeHtml(src) + '" alt="照片' + (i + 1) + '" loading="lazy"'
+             + ' data-cat="' + category + '" data-idx="' + i + '"'
+             + ' onclick="openPhotoPreview(this.dataset.cat, +this.dataset.idx)">';
       });
       html += '</div></div>';
       return html;
     }
 
     async function viewDetail(id) {
+      const modal = document.getElementById('detailModal');
+      const content = document.getElementById('detailContent');
+      // 修复：先开弹窗并显示「加载中」，避免照片较多时渲染阻塞导致点击后看似毫无反应
+      content.innerHTML = '<div class="detail-loading">加载中… / Loading…</div>';
+      modal.classList.add('active');
       try {
         const res = await fetch('/api/records/' + id, { headers: { 'Authorization': authHeader } });
+        if (res.status === 401) { logout(); return; }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          content.innerHTML = '<div class="detail-loading">加载失败：' + escapeHtml(err.error || ('HTTP ' + res.status)) + '</div>';
+          showToast(err.error || '获取详情失败', 'error');
+          return;
+        }
         const data = await res.json();
         currentDetailData = data;
         isEditMode = false;
         document.getElementById('editBtn').textContent = '编辑';
         document.getElementById('editActions').classList.remove('show');
         renderDetailContent(data, false);
-        document.getElementById('detailModal').classList.add('active');
       } catch (err) {
+        content.innerHTML = '<div class="detail-loading">加载失败：网络错误 / Network error</div>';
         showToast('获取详情失败', 'error');
       }
     }
@@ -1203,7 +1221,7 @@
       }
       html += renderField('underground_utilities', true);
       html += '</div>';
-      if (boothPhotos.length > 0) html += renderPhotoGrid(boothPhotos, '喷房内部及四周照片 / Booth Interior & Surroundings');
+      if (boothPhotos.length > 0) html += renderPhotoGrid(boothPhotos, '喷房内部及四周照片 / Booth Interior & Surroundings', 'booth');
       html += '</div>';
 
       html += '<div class="detail-section"><h3>控制柜与小门 / Control Cabinet & Aux Door</h3><div class="detail-grid">';
@@ -1218,9 +1236,9 @@
 
       html += '<div class="detail-section"><h3>气源与电源 / Air Supply & Power</h3><div class="detail-grid">';
       html += renderField('air_supply_location', true);
-      if (airPhotos.length > 0) html += '<div class="detail-item full">' + renderPhotoGrid(airPhotos, '气源点位照片 / Air Supply Photos') + '</div>';
+      if (airPhotos.length > 0) html += '<div class="detail-item full">' + renderPhotoGrid(airPhotos, '气源点位照片 / Air Supply Photos', 'air') + '</div>';
       html += renderField('power_supply_location', true);
-      if (powerPhotos.length > 0) html += '<div class="detail-item full">' + renderPhotoGrid(powerPhotos, '电源点位照片 / Power Supply Photos') + '</div>';
+      if (powerPhotos.length > 0) html += '<div class="detail-item full">' + renderPhotoGrid(powerPhotos, '电源点位照片 / Power Supply Photos', 'power') + '</div>';
       html += '</div></div>';
 
       html += '<div class="detail-section"><h3>喷房内部尺寸 / Internal Dimensions</h3><div class="detail-grid">';
@@ -1595,7 +1613,16 @@
       });
     });
 
-    function openPhotoPreview(src) {
+    function openPhotoPreview(category, idx) {
+      // 兼容旧调用：若第一个参数本身就是 data URL，直接预览
+      if (typeof category === 'string' && category.indexOf('data:image/') === 0) {
+        document.getElementById('photoPreviewImg').src = category;
+        document.getElementById('photoPreview').classList.add('active');
+        return;
+      }
+      const list = getPhotosByCategory(currentDetailData && currentDetailData.photos, category);
+      const src = list[idx];
+      if (!src) { showToast('照片不存在', 'error'); return; }
       document.getElementById('photoPreviewImg').src = src;
       document.getElementById('photoPreview').classList.add('active');
     }
