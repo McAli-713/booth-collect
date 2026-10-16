@@ -679,6 +679,11 @@
     <div class="modal" id="detailModalContent">
       <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
       <button class="btn btn-success btn-sm pdf-export-btn" onclick="exportDetailPDF()">导出 PDF</button>
+      <select id="pdfQuality" title="PDF 图片质量（越清晰体积越大）" style="float:right;margin-right:10px;height:30px;padding:0 6px;border:1px solid #d0d7e2;border-radius:6px;font-size:12px;background:#fff;">
+        <option value="high">高清</option>
+        <option value="std" selected>标准</option>
+        <option value="compact">紧凑</option>
+      </select>
       <button class="btn btn-info btn-sm pdf-export-btn" id="editBtn" onclick="toggleEditMode()">编辑</button>
       <h2>勘测详情 / Survey Detail</h2>
       <div id="detailContent"></div>
@@ -1316,6 +1321,42 @@
     }
 
     // U19：PDF 导出（优化：压缩图片质量，改进分页）
+    // PDF 图片质量档位：maxPx=长边像素上限，quality=JPEG 编码质量
+    const PDF_PRESETS = {
+      high:    { maxPx: 2400, quality: 0.92 },
+      std:     { maxPx: 1600, quality: 0.85 },
+      compact: { maxPx: 1100, quality: 0.78 }
+    };
+
+    function loadImage(dataUrl) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('图片加载失败'));
+        img.src = dataUrl;
+      });
+    }
+
+    // 按需重采样：只缩小、不放大；原图已足够小则直接用原图（最清晰）
+    async function resampleForPdf(dataUrl, maxPx, quality) {
+      const img = await loadImage(dataUrl);
+      const longest = Math.max(img.width, img.height);
+      if (longest <= maxPx) {
+        return { dataUrl: dataUrl, w: img.width, h: img.height };
+      }
+      const scale = maxPx / longest;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      return { dataUrl: canvas.toDataURL('image/jpeg', quality), w: canvas.width, h: canvas.height };
+    }
+
     async function exportDetailPDF() {
       const element = document.getElementById('detailContent');
       if (!element || !element.innerHTML.trim()) { showToast('暂无内容可导出', 'error'); return; }
@@ -1324,32 +1365,86 @@
       btn.disabled = true;
       btn.textContent = '生成中...';
       try {
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff',
-          imageTimeout: 15000
-        });
-        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+        const sel = document.getElementById('pdfQuality');
+        const preset = PDF_PRESETS[sel && sel.value] || PDF_PRESETS.std;
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-        const imgWidth = pdfWidth - margin * 2;
-        const imgHeight = canvas.height * imgWidth / canvas.width;
-        let heightLeft = imgHeight;
-        let position = margin;
-        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - margin * 2);
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight + margin;
-          pdf.addPage();
-          pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
-          heightLeft -= (pageHeight - margin * 2);
+        const PW = pdf.internal.pageSize.getWidth();
+        const PH = pdf.internal.pageSize.getHeight();
+        const M = 10;
+        const AW = PW - M * 2;   // 可用宽 190mm
+        const AH = PH - M * 2;   // 可用高 277mm
+
+        // ===== 1) 文字部分：克隆后移除图片再截图 =====
+        // 旧做法把含十几张大图的整个 DOM 交给 html2canvas(scale:2)，既慢又把照片
+        // 二次栅格化；这里只截纯文字，DOM 小→快，且文字用 PNG 保持锐利。
+        const clone = element.cloneNode(true);
+        clone.querySelectorAll('img').forEach(n => n.remove());
+        clone.querySelectorAll('.inline-photos').forEach(n => n.remove());
+        const holder = document.createElement('div');
+        holder.style.cssText = 'position:absolute;left:-99999px;top:0;width:'
+          + (element.offsetWidth || 760) + 'px;background:#ffffff;';
+        holder.appendChild(clone);
+        document.body.appendChild(holder);
+        let textCanvas;
+        try {
+          textCanvas = await html2canvas(clone, {
+            scale: 2, useCORS: true, logging: false,
+            backgroundColor: '#ffffff', imageTimeout: 15000
+          });
+        } finally {
+          document.body.removeChild(holder);
         }
-        const dateStr = new Date().toISOString().slice(0,10);
+
+        // 按 A4 可用高度把文字长图切片分页
+        const pxPerMm = textCanvas.width / AW;
+        const pageHpx = AH * pxPerMm;
+        let y = 0, firstPage = true;
+        while (y < textCanvas.height) {
+          if (!firstPage) pdf.addPage();
+          firstPage = false;
+          const h = Math.min(pageHpx, textCanvas.height - y);
+          const slice = document.createElement('canvas');
+          slice.width = textCanvas.width;
+          slice.height = Math.round(h);
+          const sctx = slice.getContext('2d');
+          sctx.fillStyle = '#ffffff';
+          sctx.fillRect(0, 0, slice.width, slice.height);
+          sctx.drawImage(textCanvas, 0, Math.round(y), textCanvas.width, Math.round(h),
+                         0, 0, slice.width, slice.height);
+          pdf.addImage(slice.toDataURL('image/png'), 'PNG', M, M, AW, h / pxPerMm);
+          y += h;
+        }
+
+        // ===== 2) 照片：原图直出，不再经 html2canvas 栅格化 =====
+        const photos = (currentDetailData && currentDetailData.photos) || [];
+        const groups = [
+          ['Booth Photos', getPhotosByCategory(photos, 'booth')],
+          ['Air Supply Photos', getPhotosByCategory(photos, 'air')],
+          ['Power Supply Photos', getPhotosByCategory(photos, 'power')]
+        ];
+        const PER_PAGE = 2, GAP = 5;
+        const cellH = (AH - GAP * (PER_PAGE - 1) - 8) / PER_PAGE;
+        for (const [title, list] of groups) {
+          if (!list || list.length === 0) continue;
+          for (let i = 0; i < list.length; i++) {
+            const slot = i % PER_PAGE;
+            if (slot === 0) pdf.addPage();
+            const fitted = await resampleForPdf(list[i], preset.maxPx, preset.quality);
+            const ratio = Math.min(AW / fitted.w, cellH / fitted.h);
+            const dw = fitted.w * ratio, dh = fitted.h * ratio;
+            const x = M + (AW - dw) / 2;
+            const top = M + 8 + slot * (cellH + GAP);
+            const yy = top + (cellH - dh) / 2;
+            pdf.addImage(fitted.dataUrl, 'JPEG', x, yy, dw, dh);
+            // 注意：jsPDF 默认字体不含中文，标签用英文避免乱码
+            pdf.setFontSize(9);
+            pdf.setTextColor(120, 120, 120);
+            pdf.text(title + '  ' + (i + 1) + '/' + list.length, M, top - 2);
+          }
+        }
+
+        const dateStr = new Date().toISOString().slice(0, 10);
         const customer = (currentDetailData && currentDetailData.customer_name) || '未知客户';
         const inviteCode = (currentDetailData && currentDetailData.invite_code) || 'NA';
         const safeCustomer = customer.replace(/[\\/:*?"<>|]/g, '_');
