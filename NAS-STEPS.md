@@ -10,13 +10,14 @@
 
 请在动手之前把下面三项信息准备好，后面每一步都要用：
 
-| # | 要准备的东西 | 怎么拿到 | 填在这里备用 |
-|---|---|---|---|
-| 1 | NAS 的内网 IP | FNOS 设置 → 网络信息 | `192.168.___.___` |
-| 2 | Render 上的 Neon 数据库连接串 | Render 控制台 → 你的服务 → Environment → `DATABASE_URL` | 见下方说明 |
-| 3 | 一个 Cloudflare Tunnel Token | 见第 6 步（外网时才需要） | 后面再填 |
+| # | 要准备的东西                     | 怎么拿到                                             | 填在这里备用               |
+| - | -------------------------- | ------------------------------------------------ | -------------------- |
+| 1 | NAS 的内网 IP                 | FNOS 设置 → 网络信息                                   | `192.168.__2_._30__` |
+| 2 | Render 上的 Neon 数据库连接串      | Render 控制台 → 你的服务 → Environment → `DATABASE_URL` | 见下方说明                |
+| 3 | 一个 Cloudflare Tunnel Token | 见第 6 步（外网时才需要）                                   | 后面再填                 |
 
 > **第 2 项的连接串长这样**，复制出来备用（注意结尾要手动补上 `?sslmode=require`）：
+>
 > ```
 > postgresql://用户名:密码@ep-xxx-xxx.neon.tech/neondb?sslmode=require
 > ```
@@ -54,7 +55,7 @@ Docker Compose version v2.x.x
 
 **如果出现 `command not found`：** FNOS 应用中心里没启用 Docker。去「应用中心」搜索 Docker 安装启用后，重新登录 SSH 再试。
 
-> ⚠️ 如果 Docker Compose 版本是 v1（显示成 `docker-compose version 1.x`），本文所有
+> ⚠️ 如果 Docker Compose 版本是 v1（显示成 `docker-compose version 1.x`），本文所有  
 > `docker compose`（带空格）命令都要改成 `docker-compose`（带横杠）。
 
 ---
@@ -68,7 +69,7 @@ mkdir -p /vol1/1000/docker/booth-collect
 cd /vol1/1000/docker/booth-collect
 ```
 
-> `/vol1/1000` 是 FNOS 的默认存储池路径。如果你的 NAS 用了别的盘，
+> `/vol1/1000` 是 FNOS 的默认存储池路径。如果你的 NAS 用了别的盘，  
 > 可以在 FNOS 的「文件管理」里右键任意文件夹看属性，把路径替换成你自己的。
 
 ### 1.2 下载代码（推荐方式：NAS 上直接拉）
@@ -100,12 +101,12 @@ public/
 apt-get update && apt-get install -y unzip
 ```
 
-> ✅ **为什么推荐这种方式而不是从你电脑上打包上传？**
-> 在 Windows 上打包会产生 CRLF 换行符，传到 Linux 上会让 `.env` 里的密码末尾混入
-> 一个看不见的回车，导致「数据库连接失败」但报错信息完全看不出原因，
+> ✅ **为什么推荐这种方式而不是从你电脑上打包上传？**  
+> 在 Windows 上打包会产生 CRLF 换行符，传到 Linux 上会让 `.env` 里的密码末尾混入  
+> 一个看不见的回车，导致「数据库连接失败」但报错信息完全看不出原因，  
 > `.sh` 脚本也会报 `$'\r': command not found`。直接从 GitHub 拉可以绕开这个坑。
 
-**备选：如果 NAS 访问 GitHub 不通**，就在你电脑上把整个 `booth-collect` 目录打包成 zip，
+**备选：如果 NAS 访问 GitHub 不通**，就在你电脑上把整个 `booth-collect` 目录打包成 zip，  
 通过 FNOS 文件管理器上传到 `/vol1/1000/docker/` 再解压。解压后额外执行一次 LF 转换：
 
 ```bash
@@ -123,7 +124,7 @@ cp .env.example .env
 vi .env
 ```
 
-> 不习惯 `vi`？按 `i` 进入编辑，改完后按 `Esc`，输入 `:wq` 回车保存退出。
+> 不习惯 `vi`？按 `i` 进入编辑，改完后按 `Esc`，输入 `:wq` 回车保存退出。  
 > 也可以在电脑上用记事本改好，通过 FNOS 文件管理器上传覆盖。
 
 **必须改的两行：**
@@ -142,6 +143,7 @@ TUNNEL_TOKEN=               # 第 6 步再填
 ```
 
 > ⚠️ 两个密码**必须不同**，且记牢：
+>
 > - `POSTGRES_PASSWORD` 是数据库内部用的，你平时不会用到，忘了要重建数据库
 > - `ADMIN_PASSWORD` 是你登录后台 `CR001` 账号用的密码
 >
@@ -153,7 +155,7 @@ TUNNEL_TOKEN=               # 第 6 步再填
 cat -A .env | grep POSTGRES_PASSWORD
 ```
 
-应该显示 `POSTGRES_PASSWORD=你的密码$`，末尾是 `$`（换行符）。
+应该显示 `POSTGRES_PASSWORD=你的密码$`，末尾是 `$`（换行符）。  
 **如果看到 `^M$`**，说明混入了回车，执行第 1.2 节末尾那条 `sed` 命令修掉。
 
 ---
@@ -175,7 +177,7 @@ docker compose up -d --build
  ✔ Container booth-app              Started
 ```
 
-> 注意 `booth-db` 显示的是 **Healthy** —— compose 里配置了「等数据库真正就绪才启动应用」，
+> 注意 `booth-db` 显示的是 **Healthy** —— compose 里配置了「等数据库真正就绪才启动应用」，  
 > 这个位置如果直接跳到 Started，后面可能出现应用先起来、连不上库的情况。
 
 ---
@@ -219,7 +221,7 @@ curl http://127.0.0.1:3000/api/health
 
 用 `CR001` 和第 2 步设的 `ADMIN_PASSWORD` 登录后台，此时后台应该是空的。
 
-**到这一步，一个全新的 NAS 版系统就跑起来了。** 可以先在后台建一个邀请码，
+**到这一步，一个全新的 NAS 版系统就跑起来了。** 可以先在后台建一个邀请码，  
 用手机连 WiFi 试着提交一条测试记录，确认照片上传正常。
 
 ---
@@ -236,8 +238,8 @@ export NEON_URL="postgresql://用户名:密码@ep-xxx.neon.tech/neondb?sslmode=r
 ./migrate-to-nas.sh
 ```
 
-> ⚠️ `NEON_URL` 末尾**必须**带 `?sslmode=require`，Neon 强制 SSL，漏了会连接被拒。
-> ⚠️ 如果密码里含有 `@`、`#`、`$` 等特殊字符，会与 URL 语法冲突。
+> ⚠️ `NEON_URL` 末尾**必须**带 `?sslmode=require`，Neon 强制 SSL，漏了会连接被拒。  
+> ⚠️ 如果密码里含有 `@`、`#`、`$` 等特殊字符，会与 URL 语法冲突。  
 > 遇到报错就把特殊字符做 URL 编码（`@` → `%40`、`#` → `%23`、`$` → `%24`）。
 
 脚本会自动走完五个阶段，**你应该看到类似这样的输出**：
@@ -271,11 +273,11 @@ export NEON_URL="postgresql://用户名:密码@ep-xxx.neon.tech/neondb?sslmode=r
 ### 5.2 对比数量、抽查照片
 
 1. 先看云端 Render 后台里有多少条记录，和上面输出的 `booth_surveys` 数字是否一致
-2. 打开 NAS 后台 `http://NAS内网IP:3000/admin`，**点开几条有照片的记录**
+2. 打开 NAS 后台 `http://NAS内网IP:3000/admin`，**点开几条有照片的记录**  
    确认照片能显示（这是最关键的检查，照片以 base64 存在库里）
 3. 随便导一条 PDF，确认功能正常
 
-> **脚本对云端只读**，中途失败不会破坏云端数据。备份 `.dump` 文件会留在目录里，
+> **脚本对云端只读**，中途失败不会破坏云端数据。备份 `.dump` 文件会留在目录里，  
 > 修好问题直接重跑即可。确认没问题之前**不要删这个 `.dump`**。
 
 ---
@@ -292,7 +294,7 @@ export NEON_URL="postgresql://用户名:密码@ep-xxx.neon.tech/neondb?sslmode=r
    - Subdomain： `survey`
    - Domain： 选你的域名
    - Service → Type： `HTTP`
-   - Service → URL： **`app:3000`**
+   - Service → URL： **`app:3000`**  
      （`app` 是 compose 里的服务名，容器之间可以直接用服务名互访）
 
 ### 6.2 NAS 上启用
@@ -333,7 +335,7 @@ Cloudflare 控制台里 Tunnel 状态应显示 **Healthy**（可能需要等 1 �
 
 用**手机关闭 WiFi、走流量**打开 `https://survey.你的域名.com/admin`，确认能登录。
 
-> 隧道服务用了 Docker 的 profile 隔离，**不敲 `--profile tunnel` 它就不会启动**，
+> 隧道服务用了 Docker 的 profile 隔离，**不敲 `--profile tunnel` 它就不会启动**，  
 > 纯内网使用完全没影响。
 
 ### 6.4 开放外网后必做
@@ -389,7 +391,7 @@ crontab -e
 0 3 * * 0 /vol1/1000/docker/booth-collect/backup.sh
 ```
 
-> 建议再把这个备份目录同步一份到 NAS 之外的地方（移动硬盘、网盘、另一台机器）。
+> 建议再把这个备份目录同步一份到 NAS 之外的地方（移动硬盘、网盘、另一台机器）。  
 > NAS 硬盘坏了的时候，本地备份救不了你。
 
 **恢复方法**（真要用的时候）：
@@ -412,7 +414,7 @@ docker compose start app
 3. 拉到最底部 → **Suspend Service**
 4. 如果在 Render 绑了自定义域名，把 DNS 指向改到 Cloudflare Tunnel
 
-> Neon 免费库不受影响，即使 Render 停了，云端数据仍可随时再导出一次
+> Neon 免费库不受影响，即使 Render 停了，云端数据仍可随时再导出一次  
 > （就是第 5 步那条命令）。这是你的后悔药。
 
 ---
@@ -435,24 +437,24 @@ unzip -qo /tmp/b.zip && cp -r booth-collect-main/. . && rm -rf booth-collect-mai
 docker compose up -d --build
 ```
 
-> 注意更新时**不要覆盖 `.env`** —— 上面的 `cp -r` 会带上 `.env.example`，
-> 但不会覆盖已存在的 `.env`（`-o` 只覆盖同名文件中较新的，GitHub 上的 example 不含你的密码）。
+> 注意更新时**不要覆盖 `.env`** —— 上面的 `cp -r` 会带上 `.env.example`，  
+> 但不会覆盖已存在的 `.env`（`-o` 只覆盖同名文件中较新的，GitHub 上的 example 不含你的密码）。  
 > 保险起见更新前先备份：`cp .env .env.bak`
 
 ---
 
 ## 故障排查
 
-| 现象 | 原因和处理 |
-|---|---|
-| `booth-app` 一直 Restarting | 看 `docker compose logs app`，**九成是 `ADMIN_PASSWORD` 少于 8 位** |
-| 日志报数据库连接失败 | 核对 `.env` 的 `POSTGRES_PASSWORD`；**若改过密码，已存在的旧卷里存的是老密码**，需 `docker compose down -v` 重建（会清空本地库，有数据先别用） |
-| 报 `SSL connection is required` | 说明连到了云端库。检查 compose 里 `DATABASE_URL` 是否为 `postgres://booth:...@db:5432/booth` |
-| 端口打不开、浏览器拒绝连接 | `HOST_PORT` 被占用 → 改成 8080；或 NAS 防火墙未放行该端口 |
-| 页面能开但样式错乱/404 | `public/` 目录不完整（缺 `vendor/`、`images/`），重新下载代码 |
-| `migrate-to-nas.sh` 报 "请先设置 NEON_URL" | 忘了 `export`，或用了 `sudo` 导致环境变量丢失。用 `sudo -i` 后再 export |
-| 迁移脚本在导出阶段失败 | 多半是 `NEON_URL` 缺 `?sslmode=require`，或密码含特殊字符未做 URL 编码 |
-| Tunnel 起不来 | `docker compose logs tunnel` → 通常是 token 复制不完整（注意别多复制空格或换行） |
+| 现象                                    | 原因和处理                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `booth-app` 一直 Restarting             | 看 `docker compose logs app`，**九成是 `ADMIN_PASSWORD` 少于 8 位**                                          |
+| 日志报 `password authentication failed for user "booth"` | `.env` 改过 `POSTGRES_PASSWORD`，但旧库里存的仍是老密码（Postgres 只在数据目录为空时才用新密码初始化）。清空数据目录重建：`docker compose down && rm -rf ./data/postgres && docker compose up -d`（会清空本地库，有数据先别用）。**注意 `down -v` 无效**——compose 用的是目录挂载 `./data/postgres`，不是 Docker 命名卷 |
+| 报 `SSL connection is required`        | 说明连到了云端库。检查 compose 里 `DATABASE_URL` 是否为 `postgres://booth:...@db:5432/booth`                        |
+| 端口打不开、浏览器拒绝连接                         | `HOST_PORT` 被占用 → 改成 8080；或 NAS 防火墙未放行该端口                                                            |
+| 页面能开但样式错乱/404                         | `public/` 目录不完整（缺 `vendor/`、`images/`），重新下载代码                                                        |
+| `migrate-to-nas.sh` 报 "请先设置 NEON_URL" | 忘了 `export`，或用了 `sudo` 导致环境变量丢失。用 `sudo -i` 后再 export                                                |
+| 迁移脚本在导出阶段失败                           | 多半是 `NEON_URL` 缺 `?sslmode=require`，或密码含特殊字符未做 URL 编码                                                |
+| Tunnel 起不来                            | `docker compose logs tunnel` → 通常是 token 复制不完整（注意别多复制空格或换行）                                          |
 
 **一键自查**（遇到问题时先跑一遍）：
 

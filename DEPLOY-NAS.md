@@ -206,7 +206,8 @@ export NEON_URL="postgresql://用户名:密码@ep-xxx.neon.tech/neondb?sslmode=r
 ### 4) 出问题怎么办
 
 - 脚本中途失败：**原始备份 `.dump` 文件仍在目录里**，修好问题重跑即可，云端数据不受影响（脚本只读）
-- 想推倒重来：确保已有 `.dump` 备份后，`docker compose down -v` 清空本地库再重导
+- 想推倒重来：确保已有 `.dump` 备份后，`docker compose down && rm -rf ./data/postgres` 清空本地库再重导
+  （**注意：compose 用的是目录挂载 `./data/postgres`，不是 Docker 命名卷，所以 `down -v` 清不掉数据**）
 
 > 若脚本因网络下载不了 postgres 镜像，可先 `docker pull postgres:16-alpine`。
 
@@ -271,7 +272,7 @@ docker compose --profile tunnel up -d
 | 现象 | 原因 / 处理 |
 |---|---|
 | 容器起来就退出 | `docker compose logs app` 多半是 `ADMIN_PASSWORD` 少于 8 位 |
-| 报数据库连接失败 | 确认 `.env` 里 `POSTGRES_PASSWORD` 与 compose 一致；改过密码需 `docker compose down -v` 后重建（会清库，慎用于有数据的环境） |
+| 报 `password authentication failed for user "booth"` | `.env` 改过 `POSTGRES_PASSWORD`，但旧库里存的仍是老密码。Postgres 只在数据目录为空时才用新密码初始化。需清空数据目录重建（会清库，有数据先别用）：`docker compose down && rm -rf ./data/postgres && docker compose up -d` |
 | `SSL connection is required` | 说明连成了云端库，检查 `DATABASE_URL`；内网应为 `postgres://booth:...@db:5432/booth` |
 | 端口打不开 | `HOST_PORT` 被占用或 NAS 防火墙；换端口或放行 |
 | 页面 404 | 确认 `public/` 目录已随代码上传完整（含 `vendor/`） |
