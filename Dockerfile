@@ -14,6 +14,11 @@ RUN npm ci --omit=dev
 COPY server.js db.js ./
 COPY public ./public
 
+# COPY 以 root 身份创建文件，切换到非 root 用户前必须移交所有权。
+# 否则当源文件权限较严（如 umask 077 解压出的 600）时，node 用户无权读取
+# server.js，容器启动即 EACCES 退出并无限重启。
+RUN chown -R node:node /app
+
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
