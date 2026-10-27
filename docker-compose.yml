@@ -40,3 +40,17 @@ services:
       NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL:-}
     ports:
       - "${HOST_PORT:-3000}:3000"
+
+  # ---- 可选：外网访问（Cloudflare Tunnel）----
+  # 无需公网 IP、自带 HTTPS，客户直接用域名填写，且 NAS 真实 IP 不暴露。
+  # 启用方式：把 TUNNEL_TOKEN 填进 .env，再执行
+  #   docker compose --profile tunnel up -d
+  # 默认不启动，不影响纯内网使用。
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: booth-tunnel
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    depends_on:
+      - app

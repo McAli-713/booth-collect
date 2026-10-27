@@ -1,0 +1,10 @@
+# 部署相关文件必须始终是 LF 行尾：
+# CRLF 会导致 .sh 在 Linux/NAS 上报 "$'\r': command not found"，
+# 也会让 .env 里的密码/连接串末尾带上隐藏回车，造成数据库连接失败。
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.example       text eol=lf
+.dockerignore   text eol=lf
+.gitignore      text eol=lf
