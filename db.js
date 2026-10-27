@@ -3,9 +3,19 @@ const crypto = require('crypto');
 require('dotenv').config();
 
 // Neon 数据库连接（显式配置连接池，适配 Supabase 免费版连接数限制）
+const dbUrl = process.env.DATABASE_URL || '';
+
+// SSL 策略：兼容两类部署环境，避免硬编码导致某一方连不上
+//   - 云端托管库（Neon / Supabase / 连接串带 sslmode=require）→ 必须走 SSL
+//   - NAS / Docker 内网自建 Postgres（默认不启用 SSL）→ 强制 SSL 会直接拒绝连接
+// 可用环境变量显式覆盖：DB_SSL=true|false，DB_SSL_INSECURE=true 关闭证书校验
+const sslMode = (process.env.DB_SSL || '').trim().toLowerCase();
+const needSsl = sslMode === 'true'
+  || (sslMode !== 'false' && /sslmode=(require|verify-full|verify-ca)|neon\.tech|supabase\.(com|co)|amazonaws\.com/i.test(dbUrl));
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: true },
+  connectionString: dbUrl || undefined,
+  ssl: needSsl ? { rejectUnauthorized: process.env.DB_SSL_INSECURE !== 'true' } : false,
   connectionTimeoutMillis: 15000,
   idleTimeoutMillis: 30000,
   max: 5,

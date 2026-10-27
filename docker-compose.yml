@@ -1,0 +1,42 @@
+# booth-collect on NAS / Docker Compose
+# 用法：把本文件与 Dockerfile 放在同一目录，配置好 .env 后执行
+#   docker compose up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: booth-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: booth
+      POSTGRES_USER: booth
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Asia/Shanghai
+    volumes:
+      # 数据持久化：容器删除后勘测记录仍在
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booth -d booth"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: booth-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy   # 等数据库就绪再启动，避免首次起来就退出
+    environment:
+      # 内网 Postgres 不启用 SSL，db.js 会自动判定为无需 SSL
+      DATABASE_URL: postgres://booth:${POSTGRES_PASSWORD}@db:5432/booth
+      PORT: "3000"
+      TZ: Asia/Shanghai
+      # ---- 管理后台账号 ----
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-CR001}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}      # 必须 ≥8 位，否则启动即退出
+      # ---- 可选：提交邮件通知，留空则跳过 ----
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL:-}
+    ports:
+      - "${HOST_PORT:-3000}:3000"
