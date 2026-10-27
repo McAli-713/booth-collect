@@ -11,13 +11,17 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY server.js db.js ./
-COPY public ./public
+COPY --chown=node:node server.js db.js ./
+COPY --chown=node:node public ./public
 
-# COPY 以 root 身份创建文件，切换到非 root 用户前必须移交所有权。
-# 否则当源文件权限较严（如 umask 077 解压出的 600）时，node 用户无权读取
-# server.js，容器启动即 EACCES 退出并无限重启。
-RUN chown -R node:node /app
+# COPY 默认以 root 创建文件，切到 USER node 后，若源文件权限较严
+# （如 umask 077 解压出的 600），node 用户无权读取 server.js，
+# 容器启动即 EACCES 退出并无限重启 —— 故此处必须 --chown。
+#
+# 注意：不要改用 `RUN chown -R node:node /app`。那样会遍历 node_modules
+# 数千个小文件并触发 overlay copy-up（每个文件复制到可写层），
+# 实测慢至 10 分钟，且镜像体积翻倍。只 chown COPY 进来的文件即可；
+# node_modules 由 npm 创建，权限本就对所有用户可读。
 
 EXPOSE 3000
 
